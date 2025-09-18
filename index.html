@@ -2,684 +2,396 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8"/>
-<title>王志强 · 兄弟地狱挑战 · 7关 + 难度选择</title>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>王志强 · 兄弟地狱挑战（Bugfix Final）</title>
 <style>
-  :root{--pink:#ff4081;--mask:rgba(0,0,0,.6);--gold:#ffd54f;--good:#4caf50;--bad:#f44336}
+  :root{--pink:#e91e63;--pink2:#ff80ab;--ok:#69f0ae;--bad:#ef5350;}
   html,body{height:100%}
-  body{margin:0;background:#000;color:#fff;font-family:"微软雅黑",system-ui,-apple-system,Segoe UI,Roboto,PingFang SC;text-align:center;overflow:hidden}
-  .stage{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:var(--mask);transition:opacity .35s}
-  .hidden{opacity:0;pointer-events:none}
-  h1,h2{margin:.35rem 0;color:#ff80ab;text-shadow:0 0 18px rgba(255,128,171,.8);letter-spacing:.5px}
-  #title{cursor:pointer}
-  .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
-  button{margin:8px;padding:10px 18px;border:none;border-radius:18px;background:linear-gradient(45deg,#ff4081,#ff80ab);color:#fff;font-size:1.0em;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.45);transition:transform .15s}
-  button:hover{transform:scale(1.05)}
-  .ghost{background:#444}
-  canvas.game{background:rgba(255,255,255,.06);border:2px solid #ff80ab;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.55)}
-  .hud{margin:6px 0;opacity:.9}
-  .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.12);margin-left:6px;font-size:.9em}
-  .toast{position:absolute;top:10%;left:50%;transform:translateX(-50%);padding:8px 14px;border-radius:999px;background:rgba(0,0,0,.55);font-weight:700;opacity:0;transition:all .35s}
-  .toast.show{opacity:1;transform:translate(-50%,0)}
-  .grid{display:grid;gap:8px}
-  .hole{width:80px;height:80px;background:#222;border-radius:10px;display:flex;justify-content:center;align-items:center;box-shadow:inset 0 0 12px rgba(0,0,0,.5)}
-  .mole{width:62px;height:62px;background:#9ccc65;border-radius:50%;display:none;justify-content:center;align-items:center;font-size:26px}
+  body{margin:0;background:#0b0b0b;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,PingFang SC}
+  h1,h2{color:var(--pink2);text-shadow:0 0 14px rgba(255,128,171,.55);margin:.6rem 0 .3rem}
+  .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;gap:12px}
+  .menu{position:relative;z-index:10;background:rgba(255,255,255,.06);border:2px solid var(--pink2);border-radius:16px;padding:14px 16px;max-width:900px}
+  .btn{padding:10px 16px;border:0;border-radius:999px;background:linear-gradient(45deg,var(--pink),var(--pink2));color:#fff;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .hidden{display:none!important}
+  .card{background:rgba(255,255,255,.06);border:2px solid var(--pink2);border-radius:14px;padding:10px 14px;width:920px;max-width:94vw}
+  canvas{background:#141414;border-radius:12px}
+  .center{display:flex;justify-content:center;align-items:center}
 </style>
 </head>
 <body>
-<audio id="s-ok" preload="auto" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_91d8c6b53e.mp3?filename=success-1-6297.mp3"></audio>
-<audio id="s-ng" preload="auto" src="https://cdn.pixabay.com/download/audio/2021/09/01/audio_7c01f7b07a.mp3?filename=error-126627.mp3"></audio>
-
-<!-- 0 开场 + 难度选择 -->
-<div class="stage" id="stage0">
-  <h1 id="title">王志强 · 兄弟地狱挑战 · 7关 + 难度选择</h1>
-  <p style="opacity:.9">跑酷 / 弹幕 / 反转音游 / 打地鼠 / 诡异解谜 / 坦克大战 / Taunt 结算</p>
-  <div class="row">
-    <button class="ghost" onclick="startWithDifficulty('easy')">简单</button>
-    <button onclick="startWithDifficulty('normal')">普通</button>
-    <button onclick="startWithDifficulty('hard')">困难</button>
+<div class="wrap">
+  <h1>王志强 · 兄弟地狱挑战 · 7关 + 难度选择</h1>
+  <div class="menu" id="menu">
+    <div style="opacity:.9;margin-bottom:8px">跑酷 / 弹幕 / 反转音游 / 打地鼠 / 诡异解谜 / 坦克大战 / Taunt 结算</div>
+    <div class="center" style="gap:12px;flex-wrap:wrap">
+      <button class="btn" id="btnEasy">简单</button>
+      <button class="btn" id="btnNormal">普通</button>
+      <button class="btn" id="btnHard">困难</button>
+    </div>
   </div>
+
+  <div id="hud" class="hidden"></div>
+
+  <!-- stage1 跑酷 -->
+  <section id="s1" class="card hidden">
+    <h2>第一关：高难跑酷（Rage Run）</h2>
+    <div style="opacity:.85">空格/点击=跳跃；完成目标距离即过关</div>
+    <div class="center"><canvas id="run" width="760" height="230"></canvas></div>
+    <div class="center" style="margin-top:8px"><button id="r1" class="btn">重试本关</button></div>
+  </section>
+
+  <!-- stage2 弹幕 -->
+  <section id="s2" class="card hidden">
+    <h2>第二关：极限弹幕（Bullet Hell）</h2>
+    <div style="opacity:.85">WASD/方向键移动；坚持指定时间不被命中（随机弹幕）</div>
+    <div class="center"><canvas id="hell" width="560" height="420"></canvas></div>
+    <div class="center" style="margin-top:8px"><button id="r2" class="btn hidden">重试本关</button></div>
+  </section>
+
+  <!-- stage3 反转音游 -->
+  <section id="s3" class="card hidden">
+    <h2>第三关：音游反转（提示是假的）</h2>
+    <div style="opacity:.85">看到“按 X”，你必须按与提示<b>相反</b>的方向；连续 N 次过关。</div>
+    <div id="rr-hint" style="opacity:.85;margin-top:4px"></div>
+    <div id="rr-note" style="font-size:68px;line-height:1.1;margin:14px 0 6px;">按 →</div>
+    <div style="opacity:.8">可用键：← → ↑ ↓（支持 WASD）</div>
+    <div class="center" style="margin-top:8px"><button id="r3" class="btn hidden">重试本关</button></div>
+  </section>
+
+  <!-- stage4 打地鼠 -->
+  <section id="s4" class="card hidden">
+    <h2>第四关：经典打地鼠</h2>
+    <div class="center" style="gap:10px;flex-direction:column">
+      <div id="moleHud" style="opacity:.85"></div>
+      <div id="moleGrid" style="display:grid;grid-template-columns:repeat(4,100px);grid-gap:10px;"></div>
+    </div>
+    <div class="center" style="margin-top:8px"><button id="r4" class="btn hidden">重试本关</button></div>
+  </section>
+
+  <!-- stage5 诡异解谜（原版占位，简单按钮通过） -->
+  <section id="s5" class="card hidden">
+    <h2>第五关：诡异解谜</h2>
+    <div style="opacity:.85">只要你够细心，这一关不难：找出<b>粉色</b>按钮并点击。</div>
+    <div class="center" style="gap:10px;flex-wrap:wrap;margin-top:10px" id="weirdBtns"></div>
+    <div class="center" style="margin-top:8px"><button id="r5" class="btn hidden">重试本关</button></div>
+  </section>
+
+  <!-- stage6 坦克 -->
+  <section id="s6" class="card hidden">
+    <h2>第六关：坦克大战</h2>
+    <div style="opacity:.85">WASD/方向键移动；空格开火；击毁所有敌人过关（本关恒定最大难度）</div>
+    <div class="center"><canvas id="tank" width="720" height="420"></canvas></div>
+    <div class="center" style="margin-top:8px"><button id="r6" class="btn">重试本关</button></div>
+  </section>
+
+  <!-- stage7 taunt -->
+  <section id="s7" class="card hidden">
+    <h2>结算</h2>
+    <div id="taunt" style="font-size:28px;margin:10px 0 14px"></div>
+    <div class="center" style="gap:10px"><button id="again" class="btn">再来一把</button></div>
+  </section>
 </div>
 
-<!-- 1 跑酷 -->
-<div class="stage hidden" id="stage1">
-  <h2>第一关：高难跑酷（Rage Run）</h2>
-  <p class="hud">空格/点击 = 跳跃；跑到 <b id="runNeed">500</b> 距离通关 <span class="badge">撞到障碍=失败</span></p>
-  <canvas id="run" class="game" width="640" height="240"></canvas>
-  <div><button id="retry1" class="hidden">重试本关</button></div>
-</div>
-
-<!-- 2 弹幕 -->
-<div class="stage hidden" id="stage2">
-  <h2>第二关：极限弹幕（Bullet Hell）</h2>
-  <p class="hud">WASD/方向键移动；坚持 <b id="hellNeed">10</b> 秒不被命中（随机弹幕）</p>
-  <canvas id="hell" class="game" width="420" height="420"></canvas>
-  <div><button id="retry2" class="hidden">重试本关</button></div>
-</div>
-
-<!-- 3 反转音游 -->
-<div class="stage hidden" id="stage3">
-  <h2>第三关：音游反转（提示是假的）</h2>
-  <p class="hud">看到“按←”，你就必须按 <b>→</b>！连续 <b id="rrNeed">9</b> 次过关</p>
-  <div id="note" style="font-size:2.1em;margin:8px 0">准备…</div>
-  <div>可用键：← → ↑ ↓</div>
-  <div><button id="retry3" class="hidden">重试本关</button></div>
-</div>
-
-<!-- 4 打地鼠 -->
-<div class="stage hidden" id="stage4">
-  <h2>第四关：经典打地鼠</h2>
-  <p class="hud"><b id="moleTargetText">500ms</b> 内点中地鼠，连续 <b id="moleNeed">5</b> 次命中过关</p>
-  <div id="mole-grid" class="grid" style="grid-template-columns:repeat(3,80px);grid-template-rows:repeat(3,80px)"></div>
-  <div><button id="retry4" class="hidden">重试本关</button></div>
-</div>
-
-<!-- 5 诡异解谜 -->
-<div class="stage hidden" id="stage5">
-  <h2>第五关：诡异解谜（别信屏幕）</h2>
-  <p class="hud">提示：请点击下面的<b>蓝色按钮</b>才能继续。</p>
-  <div class="row" id="weird-row" style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center">
-    <div class="fake-btn" style="padding:10px 16px;border-radius:10px;background:#1976d2;cursor:pointer;user-select:none">蓝色按钮</div>
-    <div class="fake-btn" style="padding:10px 16px;border-radius:10px;background:#1976d2;cursor:pointer;user-select:none">蓝色按钮</div>
-    <div class="fake-btn" style="padding:10px 16px;border-radius:10px;background:#1976d2;cursor:pointer;user-select:none">蓝色按钮</div>
-  </div>
-  <p style="opacity:.85">（友情提示：你也可以试试网页的<b>标题</b>或 <b>Esc</b> 键）</p>
-  <div><button id="retry5" class="hidden">重试本关</button></div>
-</div>
-
-<!-- 6 坦克大战 -->
-<div class="stage hidden" id="stage6">
-  <h2>第六关：坦克大战</h2>
-  <p class="hud">WASD/方向键移动，<b>空格</b>开火；击毁所有敌人过关</p>
-  <canvas id="tank" class="game" width="560" height="360"></canvas>
-  <div><button id="retry6" class="hidden">重试本关</button></div>
-</div>
-
-<!-- 7 结算 -->
-<div class="stage hidden" id="stage7">
-  <h1>🎉 王志强，你竟然通关了？</h1>
-  <p id="summary"></p>
-  <button id="again">再虐一次</button>
-</div>
-
-<div class="toast" id="toast">提示</div>
-
-<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 <script>
-/* ====== 难度配置 ====== */
-let difficulty='normal', gameConfig={};
-
-function setDifficulty(level){
-  difficulty = level;
-  if(level==='easy'){
-    gameConfig = {
-      rageRunDistance:400, runObsGap:[160,200], runSpeed:3.0, jumpV:-9.5,
-      bulletHellTime:5, bulletHellSpeed:1.2, bulletHellCount:6, bulletHellInterval:36,
-      rrNeed:7, rrTimeoutFrames:110,
-      moleTarget:3, moleReactMs:700,
-      // ---- Tank fixed MAX difficulty ----
-      tankEnemies:4, tankEnemySpeed:2.6, tankEnemyFireCD:40, tankPlayerCD:18, tankBulletSpeed:4.8,
-      tankFireProb:0.12, tankBlindProb:0.025, tankPlayerLives:1
-    };
-  } else if(level==='hard'){
-    gameConfig = {
-      rageRunDistance:1200, runObsGap:[110,150], runSpeed:3.6, jumpV:-8.5,
-      bulletHellTime:15, bulletHellSpeed:2.6, bulletHellCount:18, bulletHellInterval:28,
-      rrNeed:12, rrTimeoutFrames:80,
-      moleTarget:7, moleReactMs:450,
-      // ---- Tank fixed MAX difficulty ----
-      tankEnemies:4, tankEnemySpeed:2.6, tankEnemyFireCD:40, tankPlayerCD:18, tankBulletSpeed:4.8,
-      tankFireProb:0.12, tankBlindProb:0.025, tankPlayerLives:1
-    };
-  } else { // normal
-    gameConfig = {
-      rageRunDistance:800, runObsGap:[140,180], runSpeed:3.2, jumpV:-9.0,
-      bulletHellTime:10, bulletHellSpeed:1.8, bulletHellCount:10, bulletHellInterval:32,
-      rrNeed:9, rrTimeoutFrames:95,
-      moleTarget:5, moleReactMs:500,
-      // ---- Tank fixed MAX difficulty ----
-      tankEnemies:4, tankEnemySpeed:2.6, tankEnemyFireCD:40, tankPlayerCD:18, tankBulletSpeed:4.8,
-      tankFireProb:0.12, tankBlindProb:0.025, tankPlayerLives:1
-    };
-  }
-}
-
-function ok(){try{SOK.currentTime=0;SOK.play();}catch{}}
-function ng(){try{SNG.currentTime=0;SNG.play();}catch{}}
-function tip(t,good=true){const el=document.getElementById('toast');el.textContent=t;
-  el.style.color=good?'var(--gold)':'var(--bad)';el.classList.add('show');
-  if(good) confetti({particleCount:90,spread:180,origin:{y:.6}});(good?ok:ng)();
-  setTimeout(()=>el.classList.remove('show'),900);
-  if(!good) deaths++;
-}
-function go(n){for(let i=0;i<=7;i++){const st=document.getElementById('stage'+i);if(st)st.classList.add('hidden');}
-  document.getElementById('stage'+n).classList.remove('hidden');}
-function endGame(){
-  const sec=Math.floor((Date.now()-startTime)/1000);
-  const nick=nicknames[Math.floor(Math.random()*nicknames.length)];
-  let rank=""; if(deaths<=2) rank="勉强算个人"; else if(deaths<=5) rank="菜到抠脚"; else rank="摆烂之王";
-  const taunt=tauntsWin[Math.floor(Math.random()*tauntsWin.length)];
-  document.getElementById("summary").innerHTML=`难度：<b>${difficulty}</b><br/>死亡：<b>${deaths}</b> 次<br/>用时：<b>${sec}s</b><br/>外号：<b>${nick}</b><br/><br/>评价：${rank} · ${taunt}`;
-  go(7);
-}
-
-/* ====== 启动 ====== */
-function startWithDifficulty(level){
-  setDifficulty(level);
-  deaths=0; startTime=Date.now();
-  // 更新 HUD
-  document.getElementById('runNeed').textContent=gameConfig.rageRunDistance;
-  document.getElementById('hellNeed').textContent=gameConfig.bulletHellTime;
-  document.getElementById('rrNeed').textContent=gameConfig.rrNeed;
-  document.getElementById('moleNeed').textContent=gameConfig.moleTarget;
-  document.getElementById('moleTargetText').textContent=gameConfig.moleReactMs+'ms';
+/* ================== 全局与切换 ================== */
+let difficulty='normal';
+let cfg={};
+const hud = document.getElementById('hud');
+function setDifficulty(lv){
+  difficulty=lv;
+  if(lv==='easy'){ cfg={
+    runTarget:500, runSpeed:3.0, jumpV:-9.5, gap:[160,210],
+    hellTime:10, hellSpeed:1.8, hellSpawn:28, hellLimit:150,
+    rrNeed:8, rrTimeout:1600,
+    moleTime:25, moleNeed:10, moleInterval:[600,900]
+  }; }
+  else if(lv==='hard'){ cfg={
+    runTarget:1100, runSpeed:3.6, jumpV:-8.6, gap:[110,160],
+    hellTime:14, hellSpeed:2.4, hellSpawn:34, hellLimit:180,
+    rrNeed:12, rrTimeout:1200,
+    moleTime:25, moleNeed:16, moleInterval:[420,700]
+  }; }
+  else { cfg={
+    runTarget:800, runSpeed:3.2, jumpV:-9.0, gap:[140,190],
+    hellTime:12, hellSpeed:2.1, hellSpawn:30, hellLimit:165,
+    rrNeed:10, rrTimeout:1400,
+    moleTime:25, moleNeed:12, moleInterval:[520,820]
+  }; }
+  document.getElementById('menu').classList.add('hidden');
+  hud.classList.remove('hidden'); hud.textContent='难度：'+({easy:'简单',normal:'普通',hard:'困难'}[difficulty]);
   go(1); startRun();
 }
-document.getElementById("again").onclick=()=>{go(0);};
+document.getElementById('btnEasy').onclick=()=>setDifficulty('easy');
+document.getElementById('btnNormal').onclick=()=>setDifficulty('normal');
+document.getElementById('btnHard').onclick=()=>setDifficulty('hard');
 
-/* ====== 1 跑酷 ====== */
+function go(n){
+  for(let i=1;i<=7;i++) document.getElementById('s'+i).classList.toggle('hidden', i!==n);
+}
+function ok(){ console.log('ok'); }
+function ng(){ console.log('ng'); }
+function tip(t){ console.log(t); }
+
+/* =============== 第一关 跑酷 =============== */
 let runAnim=0;
 function startRun(){
-  const c=document.getElementById('run'), ctx=c.getContext('2d'); ctx.font="14px system-ui";
-  let x=80,y=180,vy=0,ground=180,dist=0,obs=[],t=0;
-  document.getElementById('retry1').classList.add('hidden');
-  function addObs(){ const gap=gameConfig.runObsGap[0] + Math.random()*(gameConfig.runObsGap[1]-gameConfig.runObsGap[0]); const w=22+Math.random()*20; obs.push({x:c.width+gap,y:ground,w:w,h:30}); }
-  for(let i=0;i<3;i++) addObs();
-  function jump(){ if(y>=ground-0.5) vy=gameConfig.jumpV; }
-  const onKey=(e)=>{ if(e.code==='Space') jump(); };
-  window.addEventListener('keydown', onKey);
-  c.onclick=jump;
+  const c=document.getElementById('run'), ctx=c.getContext('2d');
+  cancelAnimationFrame(runAnim);
+  const floor=c.height-28; let dist=0;
+  const player={x:70,y:floor-18,w:16,h:18,vy:0,on:true};
+  const obs=[]; let lastX=0;
+  function addObs(){ lastX+=cfg.gap[0]+Math.random()*(cfg.gap[1]-cfg.gap[0]); obs.push({x:lastX,y:floor-18,w:18,h:18}); }
+  for(let i=0;i<9;i++) addObs();
+  function jump(){ if(player.on){ player.vy=cfg.jumpV; player.on=false; } }
+  c.onclick=jump; window.onkeydown=(e)=>{ if(e.code==='Space') { e.preventDefault(); jump(); } };
+
   function step(){
-    t++; dist+=2.2; if(t%70===0) addObs();
-    vy+=0.4; y+=vy; if(y>ground){y=ground;vy=0;}
-    obs.forEach(o=>o.x-=gameConfig.runSpeed); obs=obs.filter(o=>o.x>-60);
-    for(const o of obs){ if((x+24)>o.x && x<(o.x+o.w) && (y+24)>o.y){ return fail(); } }
     ctx.clearRect(0,0,c.width,c.height);
-    ctx.fillStyle='#333'; ctx.fillRect(0,ground+20,c.width,4);
-    ctx.fillStyle='#ffd54f'; ctx.fillRect(x,y,24,24);
+    // ground
+    ctx.fillStyle='#222'; ctx.fillRect(0,floor,c.width,2);
+    // move
+    player.vy+=0.45; player.y+=player.vy;
+    if(player.y>=floor-18){ player.y=floor-18; player.vy=0; player.on=true; }
+    ctx.fillStyle='#ffd54f'; ctx.fillRect(player.x,player.y,player.w,player.h);
+    obs.forEach(o=>o.x-=cfg.runSpeed);
+    if(obs[0].x<-40){ obs.shift(); addObs(); }
     ctx.fillStyle='#ff80ab'; obs.forEach(o=>ctx.fillRect(o.x,o.y,o.w,o.h));
-    ctx.fillStyle='#fff'; ctx.fillText('距离: '+Math.floor(dist), 12, 18);
-    if(dist>=gameConfig.rageRunDistance){ return win(); } runAnim=requestAnimationFrame(step);
+    // collide
+    for(const o of obs){
+      if(player.x<o.x+o.w && player.x+player.w>o.x && player.y<o.y+o.h && player.y+player.h>o.y){
+        cancelAnimationFrame(runAnim); document.getElementById('r1').onclick=startRun; return;
+      }
+    }
+    dist+=cfg.runSpeed; ctx.fillStyle='#fff'; ctx.fillText('目标: '+cfg.runTarget+'  距离:'+Math.floor(dist), 10,16);
+    if(dist>=cfg.runTarget){ cancelAnimationFrame(runAnim); go(2); startHell(); return; }
+    runAnim=requestAnimationFrame(step);
   }
-  function cleanup(){ cancelAnimationFrame(runAnim); window.removeEventListener('keydown', onKey); c.onclick=null; }
-  function win(){ cleanup(); ok(); tip('通过第一关！'); setTimeout(()=>{go(2);startHell();},650); }
-  function fail(){ cleanup(); ng(); tip(insultsFail[Math.floor(Math.random()*insultsFail.length)],false); document.getElementById('retry1').classList.remove('hidden'); }
-  document.getElementById('retry1').onclick=()=>startRun();
   step();
 }
+document.getElementById('r1').onclick=startRun;
 
-/* ====== 2 弹幕（使用难度参数） ====== */
+/* =============== 第二关 弹幕（稳定版） =============== */
 let hellAnim=0;
 function startHell(){
-  const c=document.getElementById('hell'), ctx=c.getContext('2d'); ctx.font="14px system-ui";
-  let px=c.width/2, py=c.height/2, t=0, bullets=[], left=gameConfig.bulletHellTime;
-  document.getElementById('retry2').classList.add('hidden');
-  const keys={}; const onKeyD=(e)=>{ keys[e.key]=true; }; const onKeyU=(e)=>{ keys[e.key]=false; };
-  document.addEventListener('keydown',onKeyD); document.addEventListener('keyup',onKeyU);
+  const c=document.getElementById('hell'), ctx=c.getContext('2d');
+  cancelAnimationFrame(hellAnim);
+  document.getElementById('r2').classList.add('hidden');
 
-  function spawnRing(){
-    const cx=Math.random()*c.width, cy=Math.random()*c.height; const hole = Math.random()*Math.PI*2;
-    const n=gameConfig.bulletHellCount;
-    for(let i=0;i<n;i++){ const ang=i*(Math.PI*2/n); if(Math.abs(ang-hole)<0.3) continue;
-      bullets.push({x:cx,y:cy,vx:Math.cos(ang)*gameConfig.bulletHellSpeed,vy:Math.sin(ang)*gameConfig.bulletHellSpeed}); }
-  }
+  const P={x:c.width*0.5,y:c.height*0.8,r:7};
+  const bullets=[]; const MAX=cfg.hellLimit; const V=cfg.hellSpeed;
+  const spawnPerS=cfg.hellSpawn;
+  let leftMs=cfg.hellTime*1000;
+  const keys={};
+  const onKD=(e)=>{ keys[e.key]=true; if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','Space','Spacebar'].includes(e.key)) e.preventDefault(); };
+  const onKU=(e)=>{ keys[e.key]=false; };
+  window.addEventListener('keydown',onKD,{passive:false});
+  window.addEventListener('keyup',onKU);
+
+  let last=performance.now(), quota=0;
   function spawnEdge(){
+    if(bullets.length>=MAX) return;
     const side=Math.floor(Math.random()*4);
-    let x=0,y=0,vx=0,vy=0, sp=gameConfig.bulletHellSpeed*0.9;
-    if(side===0){x=0;y=Math.random()*c.height;vx=sp;vy=(Math.random()-0.5)*sp*0.7;}
-    if(side===1){x=c.width;y=Math.random()*c.height;vx=-sp;vy=(Math.random()-0.5)*sp*0.7;}
-    if(side===2){y=0;x=Math.random()*c.width;vy=sp;vx=(Math.random()-0.5)*sp*0.7;}
-    if(side===3){y=c.height;x=Math.random()*c.width;vy=-sp;vx=(Math.random()-0.5)*sp*0.7;}
+    let x=0,y=0,vx=0,vy=0,sp=V*0.9;
+    if(side===0){x=0;y=Math.random()*c.height;vx=sp;vy=(Math.random()-.5)*sp*0.7;}
+    if(side===1){x=c.width;y=Math.random()*c.height;vx=-sp;vy=(Math.random()-.5)*sp*0.7;}
+    if(side===2){y=0;x=Math.random()*c.width;vy=sp;vx=(Math.random()-.5)*sp*0.7;}
+    if(side===3){y=c.height;x=Math.random()*c.width;vy=-sp;vx=(Math.random()-.5)*sp*0.7;}
     bullets.push({x,y,vx,vy});
   }
-
-  function step(){
-    t++;
-    if(keys['ArrowLeft']||keys['a']) px-=3.0;
-    if(keys['ArrowRight']||keys['d']) px+=3.0;
-    if(keys['ArrowUp']||keys['w']) py-=3.0;
-    if(keys['ArrowDown']||keys['s']) py+=3.0;
-    px=Math.max(10,Math.min(px,c.width-10)); py=Math.max(10,Math.min(py,c.height-10));
-    if(t%gameConfig.bulletHellInterval===0) spawnRing();
-    if(t%20===0) spawnEdge();
-    bullets.forEach(b=>{b.x+=b.vx;b.y+=b.vy;});
-    bullets=bullets.filter(b=>b.x>-20&&b.x<c.width+20&&b.y>-20&&b.y<c.height+20);
-    for(const b of bullets){ if(Math.hypot(b.x-px,b.y-py)<10){ return fail(); } }
-    if(t%60===0){ left--; }
-    ctx.clearRect(0,0,c.width,c.height);
-    ctx.fillStyle='#fff'; ctx.fillText('剩余: '+left+' s', 10, 18);
-    ctx.fillStyle='#ff80ab'; bullets.forEach(b=>{ctx.fillRect(b.x-2,b.y-2,4,4)});
-    ctx.fillStyle='#4caf50'; ctx.beginPath(); ctx.arc(px,py,8,0,Math.PI*2); ctx.fill();
-    if(left<=0) return win(); hellAnim=requestAnimationFrame(step);
+  function spawnRing(){
+    if(bullets.length>=MAX-12) return;
+    const cx=Math.random()*c.width, cy=Math.random()*c.height, hole=Math.random()*Math.PI*2;
+    const n=Math.max(8, Math.floor(cfg.hellSpawn/2));
+    for(let i=0;i<n;i++){ const ang=i*(Math.PI*2/n); if(Math.abs(ang-hole)<0.25) continue;
+      bullets.push({x:cx,y:cy,vx:Math.cos(ang)*V,vy:Math.sin(ang)*V}); }
   }
-  function cleanup(){ cancelAnimationFrame(hellAnim); document.removeEventListener('keydown',onKeyD); document.removeEventListener('keyup',onKeyU); }
-  function win(){ cleanup(); ok(); tip('通过第二关！'); setTimeout(()=>{go(3); startReverseRhythm();},650); }
-  function fail(){ cleanup(); ng(); tip(insultsFail[Math.floor(Math.random()*insultsFail.length)],false); document.getElementById('retry2').classList.remove('hidden'); }
-  document.getElementById('retry2').onclick=()=>startHell();
-  step();
-}
+  function cleanup(){ cancelAnimationFrame(hellAnim); window.removeEventListener('keydown',onKD); window.removeEventListener('keyup',onKU); }
+  function win(){ cleanup(); go(3); startRR(); }
+  function fail(){ cleanup(); document.getElementById('r2').classList.remove('hidden'); }
 
-/* ====== 3 反转音游（使用难度参数） ====== */
-function startReverseRhythm(){
-  document.getElementById('retry3').classList.add('hidden');
-  const note=document.getElementById('note');
-
-  let streak=0, need=gameConfig.rrNeed;
-  let expected=null, deadline=0, alive=true;
-  const timeoutMs = Math.max(700, Math.floor(gameConfig.rrTimeoutFrames/60*1000));
-
-  const mapDisp = ['←','→','↑','↓'];
-  const toCode = {'←':'ArrowLeft','→':'ArrowRight','↑':'ArrowUp','↓':'ArrowDown'};
-  const opp = {'ArrowLeft':'ArrowRight','ArrowRight':'ArrowLeft','ArrowUp':'ArrowDown','ArrowDown':'ArrowUp'};
-
-  function setPrompt(t, color='#fff'){ note.textContent='按 '+t; note.style.color=color; }
-  function flash(ok){
-    note.style.transition='transform .12s';
-    note.style.transform = ok ? 'scale(1.06)' : 'scale(.92)';
-    note.style.color = ok ? '#69f0ae' : '#ef5350';
-    setTimeout(()=>{ note.style.transform='none'; note.style.color='#fff'; }, 120);
-  }
-  function paint(){ /* streak/need 显示在 note 上一行已包含 */ }
-
-  function nextRound(){
-    if(!alive) return;
-    const show = mapDisp[Math.floor(Math.random()*4)];
-    expected = opp[toCode[show]];
-    setPrompt(show);
-    deadline = performance.now()+timeoutMs;
-  }
-
-  function answer(code){
-    if(!alive) return;
-    const okHit = (code!=='TIME') && (code===expected);
-    flash(okHit);
-    if(okHit){ streak++; if(streak>=need){ return win(); } }
-    else { streak = Math.max(0, streak-1); } // 错误不锁死，扣一格
-
-    setTimeout(nextRound, 160);
-  }
-
-  function onKD(e){
-    // 允许继续，不因错误而锁死
-    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
-      e.preventDefault?.();
-      answer(e.key);
+  function step(now){
+    const dt=Math.min(50, now-last); last=now; leftMs-=dt;
+    quota += spawnPerS*dt/1000;
+    while(quota>=1){ quota-=1; (Math.random()<0.55?spawnEdge:spawnRing)(); }
+    // move P
+    let dx=(keys['ArrowRight']||keys['d']?1:0)-(keys['ArrowLeft']||keys['a']?1:0);
+    let dy=(keys['ArrowDown']||keys['s']?1:0)-(keys['ArrowUp']||keys['w']?1:0);
+    if(dx||dy){ const len=Math.hypot(dx,dy)||1; P.x+=dx/len*2.2; P.y+=dy/len*2.2; }
+    P.x=Math.max(8,Math.min(c.width-8,P.x)); P.y=Math.max(8,Math.min(c.height-8,P.y));
+    // bullets
+    for(const b of bullets){ b.x+=b.vx; b.y+=b.vy; }
+    for(let i=bullets.length-1;i>=0;i--){
+      const b=bullets[i];
+      if(b.x<-20||b.y<-20||b.x>c.width+20||b.y>c.height+20){ bullets.splice(i,1); continue; }
+      if(Math.hypot(b.x-P.x,b.y-P.y) < P.r+2){ fail(); return; }
     }
+    // draw
+    ctx.clearRect(0,0,c.width,c.height);
+    ctx.fillStyle='#fff'; ctx.fillText('剩余: '+Math.ceil(leftMs/1000)+'s',10,16);
+    ctx.fillStyle='#ff80ab'; bullets.forEach(b=>ctx.fillRect(b.x-2,b.y-2,4,4));
+    ctx.fillStyle='#4caf50'; ctx.beginPath(); ctx.arc(P.x,P.y,P.r,0,Math.PI*2); ctx.fill();
+    if(leftMs<=0){ win(); return; }
+    hellAnim=requestAnimationFrame(step);
   }
-
-  function loop(){
-    if(!alive) return;
-    if(performance.now()>deadline){ answer('TIME'); return; }
-    requestAnimationFrame(loop);
-  }
-
-  function win(){
-    alive=false; ok(); tip('通过第三关！');
-    window.removeEventListener('keydown', onKD);
-    setTimeout(()=>{ go(4); startMole(); }, 650);
-  }
-  function stop(){
-    alive=false;
-    window.removeEventListener('keydown', onKD);
-  }
-
-  window.addEventListener('keydown', onKD, {passive:false});
-  document.getElementById('retry3').onclick=()=>{ stop(); startReverseRhythm(); };
-  nextRound(); loop();
+  hellAnim=requestAnimationFrame(step);
 }
-    else { fail(); }
-  };
+document.getElementById('r2').onclick=startHell;
+
+/* =============== 第三关 反转音游（稳态：按错也继续） =============== */
+let rrAlive=false, rrTimer=0;
+function startRR(){
+  const hint=document.getElementById('rr-hint'), note=document.getElementById('rr-note');
+  rrAlive=false; if(rrTimer) clearTimeout(rrTimer); document.getElementById('r3').classList.add('hidden');
+  const need=cfg.rrNeed, timeoutMs=cfg.rrTimeout;
+  const showKeys=['←','→','↑','↓']; const toCode={'←':'ArrowLeft','→':'ArrowRight','↑':'ArrowUp','↓':'ArrowDown'};
+  const opp={'ArrowLeft':'ArrowRight','ArrowRight':'ArrowLeft','ArrowUp':'ArrowDown','ArrowDown':'ArrowUp'};
+  const wasd={'a':'ArrowLeft','d':'ArrowRight','w':'ArrowUp','s':'ArrowDown'};
+  let streak=0, expected=null, deadline=0;
+
+  function setPrompt(t,c){ note.textContent='按 '+t; note.style.color=c||'#fff'; }
+  function flash(ok){ note.style.transition='transform .12s'; note.style.transform=ok?'scale(1.06)':'scale(.92)'; note.style.color=ok?'#69f0ae':'#ef5350'; setTimeout(()=>{ note.style.transform='none'; note.style.color='#fff'; }, 120); }
+  function paint(){ const left=Math.max(0,deadline-performance.now()); hint.innerHTML=`进度：<b>${streak}/${need}</b>　剩余：<b>${Math.ceil(left/100)/10}s</b>`; }
+
   function next(){
-    const arr=['←','→','↑','↓']; const pick=arr[Math.floor(Math.random()*arr.length)];
-    note.textContent='按 '+pick;
-    expected = { '←':'ArrowRight','→':'ArrowLeft','↑':'ArrowDown','↓':'ArrowUp' }[pick];
-    frames=0;
+    if(!rrAlive) return;
+    const show=showKeys[Math.floor(Math.random()*4)];
+    expected=opp[toCode[show]]; setPrompt(show); deadline=performance.now()+timeoutMs; paint();
+    if(rrTimer) clearTimeout(rrTimer); rrTimer=setTimeout(()=>answer('TIME'), timeoutMs+20);
   }
-  function loop(){ if(dead) return; frames++; if(frames>gameConfig.rrTimeoutFrames){ fail(); return; } requestAnimationFrame(loop); }
-  function win(){ dead=true; ok(); tip('通过第三关！'); setTimeout(()=>{go(4); startMole();},650); document.removeEventListener('keydown', onKey); }
-  function fail(){ if(dead) return; dead=true; ng(); tip(insultsFail[Math.floor(Math.random()*insultsFail.length)],false); document.getElementById('retry3').classList.remove('hidden'); document.removeEventListener('keydown', onKey); }
-  document.getElementById('retry3').onclick=()=>startReverseRhythm();
-  document.addEventListener('keydown', onKey);
-  next(); loop();
+  function answer(code){
+    if(!rrAlive) return;
+    if(rrTimer){ clearTimeout(rrTimer); rrTimer=0; }
+    const ok=(code!=='TIME') && (code===expected); flash(ok);
+    if(ok){ streak++; if(streak>=need){ stop(); go(4); startMole(); return; } }
+    else { streak=Math.max(0, streak-1); }
+    setTimeout(next, 160);
+  }
+
+  const onKD=(e)=>{
+    let code=e.code; if(wasd[e.key]) code=wasd[e.key];
+    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','Space','Spacebar'].includes(e.key)) e.preventDefault();
+    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(code)) answer(code);
+  };
+  function stop(){ rrAlive=false; window.removeEventListener('keydown',onKD); if(rrTimer) clearTimeout(rrTimer); document.getElementById('r3').classList.remove('hidden'); }
+  document.getElementById('r3').onclick=()=>{ stop(); startRR(); };
+  window.addEventListener('keydown',onKD,{passive:false}); rrAlive=true; next();
 }
 
-/* ====== 4 打地鼠（使用难度参数） ====== */
-let moleTimer=0, moleHitStreak=0, moleIdx=-1;
+/* =============== 第四关 打地鼠（简洁稳定） =============== */
+let moleTimer=0, moleAlive=false;
 function startMole(){
-  const grid=document.getElementById('mole-grid'); grid.innerHTML=''; moleHitStreak=0; document.getElementById('retry4').classList.add('hidden');
-  const holes=[];
-  for(let i=0;i<9;i++){
-    const h=document.createElement('div'); h.className='hole'; const m=document.createElement('div'); m.className='mole'; m.textContent='🐹'; h.appendChild(m);
-    h.dataset.i=i; grid.appendChild(h); holes.push({h,m});
+  const grid=document.getElementById('moleGrid'), hud=document.getElementById('moleHud'); grid.innerHTML=''; hud.textContent='';
+  const N=16; for(let i=0;i<N;i++){ const b=document.createElement('button'); b.textContent=''; b.style.width='100px'; b.style.height='100px'; b.style.borderRadius='10px'; b.style.border='0'; b.style.background='#222'; grid.appendChild(b); }
+  const cells=[...grid.children]; let score=0, need=cfg.moleNeed, time=cfg.moleTime;
+  function spawn(){
+    if(!moleAlive) return;
+    const i=Math.floor(Math.random()*N), el=cells[i];
+    if(el.textContent) return; el.textContent='🐹';
+    el.onclick=()=>{ score++; el.textContent=''; el.onclick=null; };
+    setTimeout(()=>{ if(el.textContent){ el.textContent=''; el.onclick=null; } }, Math.random()*(cfg.moleInterval[1]-cfg.moleInterval[0])+cfg.moleInterval[0]);
   }
-  holes.forEach(({h,m},i)=>{
-    h.onclick=()=>{ if(m.style.display==='flex'){ moleHitStreak++; hideAll(); tip('命中!'); if(moleHitStreak>=gameConfig.moleTarget){ win(); } else { schedule(); } } else { fail(); } };
-  });
-  function hideAll(){ holes.forEach(o=>o.m.style.display='none'); }
-  function pop(){
-    hideAll(); moleIdx=Math.floor(Math.random()*9); const o=holes[moleIdx]; o.m.style.display='flex';
-    clearTimeout(moleTimer); moleTimer=setTimeout(()=>{ fail(); }, gameConfig.moleReactMs);
+  function tick(){
+    hud.innerHTML=`分数：<b>${score}/${need}</b>　时间：<b>${time}s</b>`;
+    if(--time<0){ finish(); }
   }
-  function schedule(){ clearTimeout(moleTimer); setTimeout(pop, 600); }
-  function win(){ clearTimeout(moleTimer); ok(); tip('通过第四关！'); setTimeout(()=>{go(5); startWeird();},650); }
-  function fail(){ clearTimeout(moleTimer); ng(); tip('慢了/点错',false); document.getElementById('retry4').classList.remove('hidden'); hideAll(); }
-  document.getElementById('retry4').onclick=()=>startMole();
-  pop();
+  function finish(){ moleAlive=false; clearInterval(moleTimer); clearInterval(ti); if(score>=need){ go(5); startWeird(); } else { document.getElementById('r4').classList.remove('hidden'); } }
+  moleAlive=true; moleTimer=setInterval(spawn, 600); const ti=setInterval(tick,1000); tick();
+  document.getElementById('r4').onclick=()=>{ clearInterval(moleTimer); clearInterval(ti); startMole(); };
 }
 
-/* ====== 5 诡异解谜 ====== */
+/* =============== 第五关 诡异解谜（找粉色按钮） =============== */
 function startWeird(){
-  document.getElementById('retry5').classList.add('hidden');
-  const row=document.getElementById('weird-row');
-  const fail=()=>{ ng(); tip('不对，别信屏幕',false); document.getElementById('retry5').classList.remove('hidden'); };
-  row.querySelectorAll('.fake-btn').forEach(b=> b.onclick=fail);
-  document.getElementById('title').onclick = ()=>{ ok(); tip('你找到了路！'); setTimeout(()=>{go(6); startTank();},600); };
-  const onEsc = (e)=>{ if(e.key==='Escape'){ ok(); tip('隐藏解法！'); setTimeout(()=>{go(6); startTank();},600); } };
-  window.addEventListener('keydown', onEsc, {once:true});
-  document.getElementById('retry5').onclick=()=>startWeird();
+  const box=document.getElementById('weirdBtns'); box.innerHTML='';
+  const n=18, right=Math.floor(Math.random()*n);
+  for(let i=0;i<n;i++){
+    const b=document.createElement('button'); b.className='btn'; b.style.background=i===right?'linear-gradient(45deg,#ff80ab,#ff4081)':'#333'; b.style.border='1px solid #222'; b.textContent=i===right?'点我！':'诱饵';
+    b.onclick=()=>{ if(i===right){ go(6); startTank(); } else { b.disabled=true; } };
+    box.appendChild(b);
+  }
+  document.getElementById('r5').classList.add('hidden');
 }
 
-/* ====== 6 坦克大战（使用难度参数） ====== */
-
-
-
+/* =============== 第六关 坦克大战（恒定最大难度 + BFS） =============== */
 let tankAnim=0;
 function startTank(){
-  const c=document.getElementById('tank'),ctx=c.getContext('2d'); ctx.font="14px system-ui";
-  document.getElementById('retry6').classList.add('hidden');
-  if(document.activeElement) try{document.activeElement.blur();}catch{}
-  const keys={}; const onKD=(e)=>{ keys[e.key]=true; if([' ','Spacebar','Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){ e.preventDefault(); } };
-  const onKU=(e)=>{ keys[e.key]=false; };
+  const c=document.getElementById('tank'), ctx=c.getContext('2d'); ctx.font="14px system-ui";
+  cancelAnimationFrame(tankAnim);
+  const keys={}; const onKD=(e)=>{ keys[e.key]=true; if([' ','Spacebar','Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) e.preventDefault(); }; const onKU=(e)=>{ keys[e.key]=false; };
   document.addEventListener('keydown',onKD,{passive:false}); document.addEventListener('keyup',onKU);
 
-  // ===== Tile map (walls & crates) =====
   const TS=20, COLS=Math.floor(c.width/TS), ROWS=Math.floor(c.height/TS);
-  const T_EMPTY=0, T_WALL=1, T_CRATE=2;
-  const map = Array.from({length:ROWS},()=>Array(COLS).fill(0));
-  const crateHP = {}; // key "r,c" -> hp
-  function setTile(r,c,val){ if(r>=0&&c>=0&&r<ROWS&&c<COLS){ map[r][c]=val; if(val!==T_CRATE){ delete crateHP[`${r},${c}`]; } } }
-  function getTile(r,c){ if(r<0||c<0||r>=ROWS||c>=COLS) return T_WALL; return map[r][c]; }
-  function worldToCell(x,y){ return [Math.floor(y/TS), Math.floor(x/TS)]; }
-  function cellCenter(r,c){ return {x:c*TS+TS/2, y:r*TS+TS/2}; }
+  const T0=0,TW=1,TC=2; const map=Array.from({length:ROWS},()=>Array(COLS).fill(0)); const crateHP={};
+  const set=(r,k,v)=>{ if(r>=0&&k>=0&&r<ROWS&&k<COLS){ map[r][k]=v; if(v!==TC) delete crateHP[r+','+k]; } };
+  const get=(r,k)=> (r<0||k<0||r>=ROWS||k>=COLS)?TW:map[r][k];
+  const w2c=(x,y)=>[Math.floor(y/TS),Math.floor(x/TS)]; const c2w=(r,k)=>({x:k*TS+TS/2,y:r*TS+TS/2});
+  (function gen(){
+    for(let r=0;r<ROWS;r++){ set(r,0,TW); set(r,COLS-1,TW); }
+    for(let k=0;k<COLS;k++){ set(0,k,TW); set(ROWS-1,k,TW); }
+    const cols=[7, Math.floor(COLS/2), COLS-8]; cols.forEach(cc=>{ for(let r=2;r<ROWS-2;r++){ if(r%5===0) continue; set(r,cc,TW);} });
+    const rows=[Math.floor(ROWS/2)-3, Math.floor(ROWS/2)+3]; rows.forEach(rr=>{ for(let k=2;k<COLS-2;k++){ if(k%6===0) continue; set(rr,k,TW);} });
+    let crates=18; while(crates--){ const r=2+Math.floor(Math.random()*(ROWS-4)), k=2+Math.floor(Math.random()*(COLS-4)); if(get(r,k)===T0){ set(r,k,TC); crateHP[r+','+k]=(Math.random()<0.4?2:1); } }
+  })();
 
-  function genMap(){
-    for(let r=0;r<ROWS;r++){ setTile(r,0,T_WALL); setTile(r,COLS-1,T_WALL); }
-    for(let c0=0;c0<COLS;c0++){ setTile(0,c0,T_WALL); setTile(ROWS-1,c0,T_WALL); }
-    const cols=[7, Math.floor(COLS/2), COLS-8];
-    cols.forEach(cc=>{ for(let r=2;r<ROWS-2;r++){ if(r%5===0) continue; setTile(r,cc,T_WALL);} });
-    const rows=[Math.floor(ROWS/2)-3, Math.floor(ROWS/2)+3];
-    rows.forEach(rr=>{ for(let c1=2;c1<COLS-2;c1++){ if(c1%6===0) continue; setTile(rr,c1,T_WALL);} });
-    let crateCount = (difficulty==='easy')? 8 : (difficulty==='hard'? 20 : 14);
-    while(crateCount>0){
-      const r=2+Math.floor(Math.random()*(ROWS-4));
-      const cc=2+Math.floor(Math.random()*(COLS-4));
-      if(getTile(r,cc)===T_EMPTY){
-        setTile(r,cc,T_CRATE); crateHP[`${r},${cc}`]=(Math.random()<0.4?2:1);
-        crateCount--;
-      }
-    }
-  }
-  genMap();
+  function Tank(x,y,enemy=false){ return {x,y,dir:0,speed:2.6,enemy,cd:0,stuck:0,path:null}; }
+  function free(){ let x=60,y=c.height-60; for(let t=0;t<80;t++){ const [r,k]=w2c(x,y); if(get(r,k)===T0) break; x=60+Math.random()*(c.width-120); y=60+Math.random()*(c.height-120);} return {x,y}; }
+  const p0=free(); const player=Tank(p0.x,p0.y,false); let lives=1, grace=60, shield=0, triple=0;
+  const enemies=[]; for(let i=0;i<4;i++){ const s=free(); const e=Tank(s.x,s.y,true); e.cd=50; enemies.push(e); }
+  const bullets=[]; function fire(t,spread){ if(t.cd>0) return; const a=t.dir+(Math.random()*spread-(spread||0)/2), sp=4.8; bullets.push({x:t.x,y:t.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,fromEnemy:t.enemy,life:240}); if(!t.enemy&&triple>0){ const a1=a+.18,a2=a-.18; bullets.push({x:t.x,y:t.y,vx:Math.cos(a1)*sp,vy:Math.sin(a1)*sp,fromEnemy:false,life:240}); bullets.push({x:t.x,y:t.y,vx:Math.cos(a2)*sp,vy:Math.sin(a2)*sp,fromEnemy:false,life:240}); } t.cd=t.enemy?40:18; }
 
-  // ===== Items =====
-  const items=[]; // {x,y,type,life}
-  const itemTypes=['shield','triple','heal','speed'];
-  function spawnItemRandom(){
-    for(let tries=0;tries<80;tries++){
-      const r=1+Math.floor(Math.random()*(ROWS-2));
-      const cc=1+Math.floor(Math.random()*(COLS-2));
-      if(getTile(r,cc)===T_EMPTY){
-        const type=itemTypes[Math.floor(Math.random()*itemTypes.length)];
-        items.push({x:cc*TS+TS/2, y:r*TS+TS/2, type, life:600});
-        break;
-      }
-    }
-  }
-  let itemSpawnTimer=0;
-
-  // ===== Tanks & bullets =====
-  function Tank(x,y,enemy=false){
-    return {x,y,dir:0,speed:2.2,hp:1,enemy,cd:0,aiTick:0, path:[], stuck:0};
-  }
-  // player spawn on empty cell
-  let px=60, py=c.height-60;
-  for(let t=0;t<120;t++){ const cell=worldToCell(px,py); if(getTile(cell[0],cell[1])===T_EMPTY) break;
-    px = 60+Math.random()*(c.width-120); py = 60+Math.random()*(c.height-120); }
-  const player=Tank(px,py,false);
-  let grace=60; let lives = gameConfig.tankPlayerLives || 1;
-  let shield=0, triple=0, speedBuff=0;
-  const enemies=[];
-  for(let i=0;i<gameConfig.tankEnemies;i++){
-    let ex=c.width-80-(i*40), ey=60+(i*40);
-    for(let t=0;t<120;t++){ const [rr,cc]=worldToCell(ex,ey); if(getTile(rr,cc)===T_EMPTY) break;
-      ex = 60+Math.random()*(c.width-120); ey = 60+Math.random()*(c.height-120); }
-    const e=Tank(ex,ey,true); e.speed=gameConfig.tankEnemySpeed; e.cd=gameConfig.tankEnemyFireCD+60; enemies.push(e);
-  }
-  const bullets=[];
-
-  function fire(t,spread=0){
-    if(t.cd>0) return;
-    const ang = t.dir + (Math.random()*spread - spread/2);
-    const sp = gameConfig.tankBulletSpeed;
-    bullets.push({x:t.x,y:t.y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,fromEnemy:t.enemy,life:220});
-    if(!t.enemy && triple>0){
-      const a1 = ang + 0.18, a2 = ang - 0.18;
-      bullets.push({x:t.x,y:t.y,vx:Math.cos(a1)*sp,vy:Math.sin(a1)*sp,fromEnemy:false,life:220});
-      bullets.push({x:t.x,y:t.y,vx:Math.cos(a2)*sp,vy:Math.sin(a2)*sp,fromEnemy:false,life:220});
-    }
-    t.cd = t.enemy? gameConfig.tankEnemyFireCD : gameConfig.tankPlayerCD;
-  }
-
-  // Collision helpers
-  function rectHitsSolid(x,y,w,h){
-    const pts=[[x,y],[x+w,y],[x,y+h],[x+w,y+h]];
-    for(const [px,py] of pts){
-      const [r,c0] = worldToCell(px,py);
-      const tt = getTile(r,c0);
-      if(tt===T_WALL || tt===T_CRATE) return true;
-    }
-    return false;
-  }
-  function moveTank(t,dx,dy){
-    const spd = t.speed * (t===player && speedBuff>0 ? 1.35 : 1);
-    const w=24,h=18;
-    let nx=t.x+dx*spd, ny=t.y;
-    if(!rectHitsSolid(nx-12,ny-9,w,h)) t.x=nx;
-    nx=t.x; ny=t.y+dy*spd;
-    if(!rectHitsSolid(nx-12,ny-9,w,h)) t.y=ny;
-    t.x=Math.max(12,Math.min(t.x,c.width-12));
-    t.y=Math.max(9,Math.min(t.y,c.height-9));
-  }
-
-  // LOS
-  function hasLOS(ax,ay,bx,by){
-    const steps=22;
-    for(let i=1;i<=steps;i++){
-      const x=ax+(bx-ax)*i/steps;
-      const y=ay+(by-ay)*i/steps;
-      const [r,c0]=worldToCell(x,y);
-      const t=getTile(r,c0);
-      if(t===T_WALL || t===T_CRATE) return false;
-    }
-    return true;
-  }
-
-  // BFS next-step pathfinding on the tile grid
-  function bfsNext(fromR,fromC,toR,toC){
-    const key=(r,c)=>r+','+c;
-    const q=[[fromR,fromC]]; const prev=new Map(); const seen=new Set([key(fromR,fromC)]);
-    const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-    while(q.length){
-      const [r,c0]=q.shift();
-      if(r===toR && c0===toC) break;
-      for(const [dr,dc] of dirs){
-        const nr=r+dr, nc=c0+dc;
-        const k=key(nr,nc);
-        if(nr<0||nc<0||nr>=ROWS||nc>=COLS) continue;
-        const t=getTile(nr,nc);
-        if(t!==T_EMPTY) continue;
-        if(!seen.has(k)){ seen.add(k); prev.set(k,[r,c0]); q.push([nr,nc]); }
-      }
-    }
-    // reconstruct next
-    let cur=[toR,toC], k=key(cur[0],cur[1]);
-    if(!prev.has(k)) return null;
-    while(true){
-      const p=prev.get(k);
-      if(!p) return null;
-      if(p[0]===fromR && p[1]===fromC) return cur;
-      k=key(p[0],p[1]); cur=p;
-    }
-  }
-
-  function pickupItem(it){
-    if(it.type==='shield'){ shield=360; tip('护盾'); }
-    if(it.type==='triple'){ triple=360; tip('三连发'); }
-    if(it.type==='speed'){ speedBuff=300; tip('加速'); }
-    if(it.type==='heal'){ if(lives<5){ lives++; tip('生命+1'); } }
-  }
+  function solid(x,y,w,h){ const pts=[[x,y],[x+w,y],[x,y+h],[x+w,y+h]]; for(const [px,py] of pts){ const [r,k]=w2c(px,py); const t=get(r,k); if(t===TW||t===TC) return true; } return false; }
+  function move(t,dx,dy){ const sp=t.speed; let nx=t.x+dx*sp, ny=t.y; if(!solid(nx-12,ny-9,24,18)) t.x=nx; nx=t.x; ny=t.y+dy*sp; if(!solid(nx-12,ny-9,24,18)) t.y=ny; t.x=Math.max(12,Math.min(t.x,c.width-12)); t.y=Math.max(9,Math.min(t.y,c.height-9)); }
+  function los(ax,ay,bx,by){ const steps=22; for(let i=1;i<=steps;i++){ const x=ax+(bx-ax)*i/steps,y=ay+(by-ay)*i/steps; const [r,k]=w2c(x,y), t=get(r,k); if(t===TW||t===TC) return false; } return true; }
+  function bfs(fr,fk,tr,tk){ const key=(r,k)=>r+','+k; const q=[[fr,fk]], prev=new Map(), seen=new Set([key(fr,fk)]); const dirs=[[1,0],[-1,0],[0,1],[0,-1]]; while(q.length){ const [r,k]=q.shift(); if(r===tr&&k===tk) break; for(const [dr,dk] of dirs){ const nr=r+dr,nk=k+dk,kk=key(nr,nk); if(nr<0||nk<0||nr>=ROWS||nk>=COLS) continue; if(get(nr,nk)!==T0) continue; if(!seen.has(kk)){ seen.add(kk); prev.set(kk,[r,k]); q.push([nr,nk]); } } } let cur=[tr,tk], kk=key(cur[0],cur[1]); if(!prev.has(kk)) return null; while(true){ const p=prev.get(kk); if(!p) return null; if(p[0]===fr&&p[1]===fk) return cur; kk=key(p[0],p[1]); cur=p; } }
 
   function update(){
-    // Player control
-    let dx=0,dy=0;
-    if(keys['ArrowLeft']||keys['a']) dx-=1;
-    if(keys['ArrowRight']||keys['d']) dx+=1;
-    if(keys['ArrowUp']||keys['w']) dy-=1;
-    if(keys['ArrowDown']||keys['s']) dy+=1;
-    if(dx||dy){ const len=Math.hypot(dx,dy); dx/=len; dy/=len; player.dir=Math.atan2(dy,dx); moveTank(player, dx, dy); }
-    if(keys[' ']||keys['Spacebar']||keys['Space']) fire(player,0.05);
-    if(player.cd>0) player.cd--;
-    if(grace>0) grace--;
-    if(shield>0) shield--;
-    if(triple>0) triple--;
-    if(speedBuff>0) speedBuff--;
+    // player
+    let dx=(keys['ArrowRight']||keys['d']?1:0)-(keys['ArrowLeft']||keys['a']?1:0);
+    let dy=(keys['ArrowDown']||keys['s']?1:0)-(keys['ArrowUp']||keys['w']?1:0);
+    if(dx||dy){ const len=Math.hypot(dx,dy)||1; player.dir=Math.atan2(dy,dx); move(player,dx/len,dy/len); }
+    if(keys[' ']||keys['Spacebar']||keys['Space']) fire(player,0.06);
+    if(player.cd>0) player.cd--; if(grace>0) grace--;
 
-    // Items spawn & pickup
-    itemSpawnTimer++;
-    const spawnEvery = 560;
-    if(itemSpawnTimer>=spawnEvery){ itemSpawnTimer=0; spawnItemRandom(); }
-    for(const it of items){
-      it.life--;
-      if(Math.hypot(player.x-it.x, player.y-it.y)<16){ it.dead=true; pickupItem(it); }
-      if(it.life<=0) it.dead=true;
-    }
-    for(let i=items.length-1;i>=0;i--) if(items[i].dead) items.splice(i,1);
-
-    // Enemies AI with BFS steering
+    // enemies
     enemies.forEach(e=>{
-      e.aiTick++;
-      const [pr,pc]=worldToCell(player.x,player.y);
-      const [er,ec]=worldToCell(e.x,e.y);
-      if(e.aiTick%15===0 || !e.path || e.path.length===0){ // refresh path
-        const next=bfsNext(er,ec,pr,pc);
-        if(next){ e.path=[next[0],next[1]]; } else { e.path=null; }
-      }
-      let mx=0,my=0;
-      if(e.path){
-        const target=cellCenter(e.path[0], e.path[1]);
-        const vx=target.x - e.x, vy=target.y - e.y;
-        const len=Math.hypot(vx,vy)||1;
-        mx=(vx/len)*e.speed*0.9; my=(vy/len)*e.speed*0.9;
-        if(Math.hypot(vx,vy)<6){ e.path=null; }
-      }else{
-        // fallback random wiggle
-        mx=(Math.random()-0.5)*e.speed; my=(Math.random()-0.5)*e.speed;
-      }
-      const bx=e.x, by=e.y;
-      moveTank(e,mx,my);
-      e.dir = Math.atan2(player.y-e.y, player.x-e.x);
-      if(Math.hypot(e.x-bx,e.y-by)<0.05){ e.stuck++; if(e.stuck>30){ e.path=null; e.stuck=0; } } else { e.stuck=0; }
-      if(e.cd>0) e.cd--;
-      if(hasLOS(e.x,e.y,player.x,player.y) && Math.random()<gameConfig.tankFireProb) fire(e,0.12);
-      else if(Math.random()<gameConfig.tankBlindProb) fire(e,0.25);
+      const [pr,pk]=w2c(player.x,player.y), [er,ek]=w2c(e.x,e.y);
+      if(!e.path || e.stuck>24){ const nx=bfs(er,ek,pr,pk); e.path=nx?[nx[0],nx[1]]:null; e.stuck=0; }
+      let mx=0,my=0; if(e.path){ const t=c2w(e.path[0],e.path[1]); const vx=t.x-e.x,vy=t.y-e.y,len=Math.hypot(vx,vy)||1; mx=vx/len*e.speed*.9; my=vy/len*e.speed*.9; if(Math.hypot(vx,vy)<6) e.path=null; } else { mx=(Math.random()-.5)*e.speed; my=(Math.random()-.5)*e.speed; }
+      const ox=e.x,oy=e.y; move(e,mx,my); if(Math.hypot(e.x-ox,e.y-oy)<.05) e.stuck++; else e.stuck=0;
+      e.dir=Math.atan2(player.y-e.y,player.x-e.x);
+      if(e.cd>0) e.cd--; if(los(e.x,e.y,player.x,player.y)&&Math.random()<0.12) fire(e,0.12); else if(Math.random()<0.025) fire(e,0.25);
     });
 
-    // Bullets physics
-    bullets.forEach(b=>{
-      b.x+=b.vx; b.y+=b.vy; b.life--;
-      const [r,cc]=worldToCell(b.x,b.y);
-      const t=getTile(r,cc);
-      if(t===T_WALL){ b.dead=true; }
-      else if(t===T_CRATE){
-        b.dead=true;
-        const key=`${r},${cc}`;
-        crateHP[key]=(crateHP[key]||1)-1;
-        if(crateHP[key]<=0){ setTile(r,cc,T_EMPTY); }
-      }
-    });
+    // bullets
+    bullets.forEach(b=>{ b.x+=b.vx; b.y+=b.vy; b.life--; const [r,k]=w2c(b.x,b.y); const t=get(r,k); if(t===TW){ b.dead=true; } else if(t===TC){ b.dead=true; const id=r+','+k; crateHP[id]=(crateHP[id]||1)-1; if(crateHP[id]<=0) set(r,k,T0); } });
     for(const b of bullets){
       if(b.dead||b.life<=0) continue;
-      if(!b.fromEnemy){
-        enemies.forEach(e=>{ if(!e.dead && Math.hypot(e.x-b.x,e.y-b.y)<14){ e.dead=true; b.dead=true; } });
-      }else{
-        if(Math.hypot(player.x-b.x,player.y-b.y)<12){
-          if(grace<=0){
-            b.dead=true;
-            if(shield>0){ /* absorb */ }
-            else{
-              lives--;
-              if(lives<=0){ return fail(); }
-              else{ grace=60; tip('被击中 -1，短暂无敌'); }
-            }
-          }else{ b.dead=true; }
-        }
-      }
+      if(!b.fromEnemy){ enemies.forEach(e=>{ if(!e.dead&&Math.hypot(e.x-b.x,e.y-b.y)<14){ e.dead=true; b.dead=true; } }); }
+      else{ if(Math.hypot(player.x-b.x,player.y-b.y)<12){ if(grace<=0){ b.dead=true; if(--lives<=0){ return over(false); } else { grace=60; } } else b.dead=true; } }
       if(b.x<0||b.y<0||b.x>c.width||b.y>c.height) b.dead=true;
     }
     for(let i=enemies.length-1;i>=0;i--) if(enemies[i].dead) enemies.splice(i,1);
-    for(let i=bullets.length-1;i>=0;i--) if(bullets[i].dead || bullets[i].life<=0) bullets.splice(i,1);
-    if(enemies.length===0) return win();
+    for(let i=0;i<bullets.length;i++) if(bullets[i].dead||bullets[i].life<=0) { bullets.splice(i,1); i--; }
+    if(enemies.length===0) return over(true);
 
-    // Draw
+    // draw
     ctx.clearRect(0,0,c.width,c.height);
-    // tiles
-    for(let r=0;r<ROWS;r++){
-      for(let c0=0;c0<COLS;c0++){
-        const t=map[r][c0];
-        if(t===T_WALL){ ctx.fillStyle='#1e1e1e'; ctx.fillRect(c0*TS, r*TS, TS-1, TS-1); }
-        if(t===T_CRATE){ ctx.fillStyle='#6d4c41'; ctx.fillRect(c0*TS+2, r*TS+2, TS-4, TS-4); }
-      }
-    }
-    // items
-    items.forEach(it=>{
-      if(it.type==='shield') ctx.fillStyle='#42a5f5';
-      if(it.type==='triple') ctx.fillStyle='#ffb74d';
-      if(it.type==='speed')  ctx.fillStyle='#66bb6a';
-      if(it.type==='heal')   ctx.fillStyle='#ef5350';
-      ctx.beginPath(); ctx.arc(it.x, it.y, 7, 0, Math.PI*2); ctx.fill();
-    });
-    // bullets
-    ctx.fillStyle='#fff'; bullets.forEach(b=>{ctx.fillRect(b.x-2,b.y-2,4,4);});
-    // enemies
-    enemies.forEach(e=>{
-      ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.dir);
-      ctx.fillStyle='#e57373'; ctx.fillRect(-12,-9,24,18);
-      ctx.fillStyle='#ffcdd2'; ctx.fillRect(0,-3,16,6);
-      ctx.restore();
-    });
-    // player
-    ctx.save(); ctx.translate(player.x,player.y); ctx.rotate(player.dir);
-    ctx.fillStyle='#64b5f6'; ctx.fillRect(-12,-9,24,18);
-    ctx.fillStyle='#bbdefb'; ctx.fillRect(0,-3,16,6);
-    ctx.restore();
+    for(let r=0;r<ROWS;r++) for(let k=0;k<COLS;k++){ const t=map[r][k]; if(t===TW){ ctx.fillStyle='#1e1e1e'; ctx.fillRect(k*TS,r*TS,TS-1,TS-1); } if(t===TC){ ctx.fillStyle='#6d4c41'; ctx.fillRect(k*TS+2,r*TS+2,TS-4,TS-4); } }
+    ctx.fillStyle='#fff'; ctx.fillText('生命:'+ '❤'.repeat(lives),8,16);
+    ctx.fillStyle='#fff'; bullets.forEach(b=>ctx.fillRect(b.x-2,b.y-2,4,4));
+    enemies.forEach(e=>{ ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.dir); ctx.fillStyle='#e57373'; ctx.fillRect(-12,-9,24,18); ctx.fillStyle='#ffcdd2'; ctx.fillRect(0,-3,16,6); ctx.restore(); });
+    ctx.save(); ctx.translate(player.x,player.y); ctx.rotate(player.dir); ctx.fillStyle='#64b5f6'; ctx.fillRect(-12,-9,24,18); ctx.fillStyle='#bbdefb'; ctx.fillRect(0,-3,16,6); ctx.restore();
     if(grace>0){ ctx.fillStyle='rgba(76,175,80,0.35)'; ctx.beginPath(); ctx.arc(player.x,player.y,16,0,Math.PI*2); ctx.fill(); }
-    if(shield>0){ ctx.strokeStyle='rgba(66,165,245,0.8)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(player.x,player.y,18,0,Math.PI*2); ctx.stroke(); }
-
-    // HUD
-    ctx.fillStyle='#fff'; ctx.fillText('生命:'+ '❤'.repeat(lives), 8, 16);
-    let info=[]; if(shield>0) info.push('盾'); if(triple>0) info.push('三'); if(speedBuff>0) info.push('速');
-    if(info.length) ctx.fillText('BUFF: '+info.join('/'), 8, 32);
-
     tankAnim=requestAnimationFrame(update);
   }
-
   function cleanup(){ cancelAnimationFrame(tankAnim); document.removeEventListener('keydown',onKD); document.removeEventListener('keyup',onKU); }
-  function win(){ cleanup(); ok(); tip('击毁全部敌人！'); setTimeout(()=>endGame(),650); }
-  function fail(){ cleanup(); ng(); tip('失败：生命耗尽',false); document.getElementById('retry6').classList.remove('hidden'); }
-  document.getElementById('retry6').onclick=()=>startTank();
+  function over(win){ cleanup(); go(7); document.getElementById('taunt').innerHTML = win ? '王志强，你竟然通关了？<br>外号：人肉背板' : '被击中，失败'; }
   update();
 }
-</script>
+document.getElementById('r6').onclick=startTank;
 
+/* =============== 结算 =============== */
+document.getElementById('again').onclick=()=>location.reload();
+</script>
 </body>
 </html>
