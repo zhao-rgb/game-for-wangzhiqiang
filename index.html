@@ -80,6 +80,7 @@ document.getElementById('startBtn').onclick=()=>{ go('s1'); startTank(); };
 let tankAnim=0;
 function startTank(){
   const c=document.getElementById('tank'), ctx=c.getContext('2d'); cancelAnimationFrame(tankAnim);
+  const HW=8, HH=7; // 半宽/半高（命中盒 16x14，小于走廊宽 20，保证能通过）
   const TS=20, COLS=Math.floor(c.width/TS), ROWS=Math.floor(c.height/TS);
   const T0=0, TW=1, TC=2; // 空地/墙/木箱
   const map=Array.from({length:ROWS},()=>Array(COLS).fill(TW)); // 先全墙
@@ -140,10 +141,10 @@ function startTank(){
   function move(t,dx,dy){
     const sp=t.speed;
     let nx=t.x+dx*sp, ny=t.y;
-    if(!solidRect(nx-12,ny-9,24,18)) t.x=nx;
+    if(!solidRect(nx-HW,ny-HH,HW*2,HH*2)) t.x=nx;
     nx=t.x; ny=t.y+dy*sp;
-    if(!solidRect(nx-12,ny-9,24,18)) t.y=ny;
-    t.x=Math.max(12,Math.min(t.x,c.width-12)); t.y=Math.max(9,Math.min(t.y,c.height-9));
+    if(!solidRect(nx-HW,ny-HH,HW*2,HH*2)) t.y=ny;
+    t.x=Math.max(HW,Math.min(t.x,c.width-HW)); t.y=Math.max(HH,Math.min(t.y,c.height-HH));
   }
 
   function los(ax,ay,bx,by){
@@ -212,10 +213,10 @@ function startTank(){
     // 敌人 AI
     enemies.forEach(e=>{
       const [pr,pk]=w2c(player.x,player.y), [er,ek]=w2c(e.x,e.y);
-      if(!e.path || e.stuck>25 || Math.random()<0.02){ const n=bfs(er,ek,pr,pk); e.path=n?[n[0],n[1]]:null; e.stuck=0; }
+      if(!e.path || e.stuck>15 || Math.random()<0.06){ const n=bfs(er,ek,pr,pk); e.path=n?[n[0],n[1]]:null; e.stuck=0; }
       let mx=0,my=0;
       if(e.path){ const t=c2w(e.path[0],e.path[1]); const vx=t.x-e.x,vy=t.y-e.y,len=Math.hypot(vx,vy)||1; mx=vx/len*e.speed*.95; my=vy/len*e.speed*.95; if(Math.hypot(vx,vy)<6) e.path=null; }
-      else { mx=(Math.random()-.5)*e.speed; my=(Math.random()-.5)*e.speed; }
+      else { mx=(Math.random()-.5)*e.speed*1.2; my=(Math.random()-.5)*e.speed*1.2; }
       const ox=e.x,oy=e.y; move(e,mx,my); if(Math.hypot(e.x-ox,e.y-oy)<.05) e.stuck++; else e.stuck=0;
       e.dir=Math.atan2(player.y-e.y,player.x-e.x);
       if(e.cd>0) e.cd--;
@@ -269,8 +270,8 @@ function startTank(){
     if(power.triple>0) ctx.fillText('三连',200,14);
     if(power.rapid>0)  ctx.fillText('急射',240,14);
     ctx.fillStyle='#fff'; bullets.forEach(b=>ctx.fillRect(b.x-2,b.y-2,4,4));
-    enemies.forEach(e=>{ ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.dir); ctx.fillStyle='#e57373'; ctx.fillRect(-12,-9,24,18); ctx.fillStyle='#ffcdd2'; ctx.fillRect(0,-3,16,6); ctx.restore(); });
-    ctx.save(); ctx.translate(player.x,player.y); ctx.rotate(player.dir); ctx.fillStyle='#64b5f6'; ctx.fillRect(-12,-9,24,18); ctx.fillStyle='#bbdefb'; ctx.fillRect(0,-3,16,6); ctx.restore();
+    enemies.forEach(e=>{ ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.dir); ctx.fillStyle='#e57373'; ctx.fillRect(-HW,-HH,HW*2,HH*2); ctx.fillStyle='#ffcdd2'; ctx.fillRect(0,-3,16,6); ctx.restore(); });
+    ctx.save(); ctx.translate(player.x,player.y); ctx.rotate(player.dir); ctx.fillStyle='#64b5f6'; ctx.fillRect(-HW,-HH,HW*2,HH*2); ctx.fillStyle='#bbdefb'; ctx.fillRect(0,-3,16,6); ctx.restore();
     if(power.shield>0||player.inv>0){ ctx.fillStyle='rgba(76,175,80,0.35)'; ctx.beginPath(); ctx.arc(player.x,player.y,16,0,Math.PI*2); ctx.fill(); }
 
     tankAnim=requestAnimationFrame(update);
