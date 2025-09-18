@@ -113,7 +113,7 @@ function startHell(){
   const c=document.getElementById('hell'), ctx=c.getContext('2d'), hud=document.getElementById('hellHud');
   cancelAnimationFrame(hellAnim); document.getElementById('r2').classList.add('hidden');
   const P={x:c.width*0.5,y:c.height*0.8,r:7}; const bullets=[];
-  const V=1.7, MAX=150, spawnPerS=28; let leftMs=9000; hud.textContent='坚持 9s';
+  const V=1.7, MAX=150, spawnPerS=28; let leftMs=3000; hud.textContent='坚持 3s';
   const keys={}; const onKD=(e)=>{ keys[e.key]=true; if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','Space','Spacebar'].includes(e.key)) e.preventDefault(); }; const onKU=(e)=>{ keys[e.key]=false; };
   window.addEventListener('keydown',onKD,{passive:false}); window.addEventListener('keyup',onKU);
   let last=performance.now(), quota=0;
