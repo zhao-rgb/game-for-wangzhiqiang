@@ -76,17 +76,18 @@
 function go(id){ ['menu','s1','s2','s3','s4','final'].forEach(x=>document.getElementById(x).classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
 document.getElementById('startBtn').onclick=()=>{ go('s1'); startTank(); };
 
+
 /* ====== 第一关：坦克大战（3 敌人·迷宫+BFS+道具） ====== */
 let tankAnim=0;
 function startTank(){
   const c=document.getElementById('tank'), ctx=c.getContext('2d'); cancelAnimationFrame(tankAnim);
-  const HW=8, HH=7; // 半宽/半高（命中盒 16x14，小于走廊宽 20，保证能通过）
   const TS=20, COLS=Math.floor(c.width/TS), ROWS=Math.floor(c.height/TS);
   const T0=0, TW=1, TC=2; // 空地/墙/木箱
   const map=Array.from({length:ROWS},()=>Array(COLS).fill(TW)); // 先全墙
   const crateHP={};
+  const HW=8, HH=7; // 半宽/半高
 
-  // --- 迷宫生成（标准奇数格 carve） ---
+  // --- 迷宫生成（奇数格 carve） ---
   function inside(x,y){ return x>0 && x<COLS-1 && y>0 && y<ROWS-1; }
   function carve(x,y){
     map[y][x]=T0;
@@ -94,8 +95,7 @@ function startTank(){
     for(const [dx,dy] of dirs){
       const nx=x+dx*2, ny=y+dy*2;
       if(inside(nx,ny) && map[ny][nx]===TW){
-        map[y+dy][x+dx]=T0; map[ny][nx]=T0;
-        carve(nx,ny);
+        map[y+dy][x+dx]=T0; map[ny][nx]=T0; carve(nx,ny);
       }
     }
   }
@@ -103,9 +103,8 @@ function startTank(){
   // 边框保留墙
   for(let r=0;r<ROWS;r++){ map[r][0]=map[r][COLS-1]=TW; }
   for(let k=0;k<COLS;k++){ map[0][k]=map[ROWS-1][k]=TW; }
-
-  // 木箱（稀疏，保证在空地上）
-  for(let t=0;t<20;t++){
+  // 木箱
+  for(let t=0;t<22;t++){
     const r=1+Math.floor(Math.random()*(ROWS-2)), k=1+Math.floor(Math.random()*(COLS-2));
     if(map[r][k]===T0 && Math.random()<0.6){ map[r][k]=TC; crateHP[r+','+k]=(Math.random()<0.4?2:1); }
   }
@@ -116,7 +115,11 @@ function startTank(){
   function c2w(r,k){ return {x:k*TS+TS/2,y:r*TS+TS/2}; }
   function solidRect(x,y,w,h){ const pts=[[x,y],[x+w,y],[x,y+h],[x+w,y+h]]; for(const [px,py] of pts){ const [r,k]=w2c(px,py), t=get(r,k); if(t===TW||t===TC) return true; } return false; }
 
-  function Tank(x,y,enemy=false){ return {x,y,dir:0,speed:2.3,enemy,cd:0,stuck:0,path:null,hp:enemy?1:3,inv:0}; }
+  function Tank(x,y,enemy=false){
+    return {x,y,dir:0,enemy,hp:enemy?1:3,inv:0,cd:0,
+            vx:0,vy:0,maxSpeed:enemy?2.2:2.4,acc:0.22,stuck:0,
+            path:null,pi:0,lastPlan:0};
+  }
   function free(){
     for(let tries=0; tries<400; tries++){
       const r=1+Math.floor(Math.random()*(ROWS-2)), k=1+Math.floor(Math.random()*(COLS-2));
@@ -124,27 +127,39 @@ function startTank(){
     }
     return {x:60,y:60};
   }
-
   const player=(()=>{ const p=free(); return Tank(p.x,p.y,false); })();
   const enemies=[]; for(let i=0;i<3;i++){ const s=free(); enemies.push(Tank(s.x,s.y,true)); }
   const bullets=[]; const drops=[]; let power={shield:0,triple:0,rapid:0};
 
-  function fire(t){
-    if(t.cd>0) return;
-    const baseSpeed=4.7, a=t.dir;
-    const push=(ang)=>bullets.push({x:t.x,y:t.y,vx:Math.cos(ang)*baseSpeed,vy:Math.sin(ang)*baseSpeed,fromEnemy:t.enemy,life:260});
-    push(a);
-    if(!t.enemy && power.triple>0){ push(a+0.18); push(a-0.18); }
-    t.cd = t.enemy ? 38 : (power.rapid>0 ? 10 : 16);
+  // 移动：带速度与加速度，连续碰撞检测
+  function moveEntity(t){
+    let nx=t.x + t.vx, ny=t.y;
+    if(!solidRect(nx-HW, ny-HH, HW*2, HH*2)) t.x=nx; else t.vx=0;
+    nx=t.x; ny=t.y + t.vy;
+    if(!solidRect(nx-HW, ny-HH, HW*2, HH*2)) t.y=ny; else t.vy=0;
+    t.x=Math.max(HW,Math.min(t.x,c.width-HW)); t.y=Math.max(HH,Math.min(t.y,c.height-HH));
   }
 
-  function move(t,dx,dy){
-    const sp=t.speed;
-    let nx=t.x+dx*sp, ny=t.y;
-    if(!solidRect(nx-HW,ny-HH,HW*2,HH*2)) t.x=nx;
-    nx=t.x; ny=t.y+dy*sp;
-    if(!solidRect(nx-HW,ny-HH,HW*2,HH*2)) t.y=ny;
-    t.x=Math.max(HW,Math.min(t.x,c.width-HW)); t.y=Math.max(HH,Math.min(t.y,c.height-HH));
+  function faceTo(t, dx,dy){
+    const targetAng=Math.atan2(dy,dx);
+    t.dir = targetAng; // 简化：炮塔即朝向移动方向
+  }
+
+  function fire(t){
+    if(t.cd>0) return;
+    const baseSpeed=4.7;
+    const push=(ang)=>bullets.push({x:t.x,y:t.y,vx:Math.cos(ang)*baseSpeed,vy:Math.sin(ang)*baseSpeed,fromEnemy:t.enemy,life:260});
+    let a=t.dir;
+    // 预测瞄准（敌人对玩家）
+    if(t.enemy){
+      const dx=player.x-t.x, dy=player.y-t.y, dist=Math.hypot(dx,dy);
+      const lead=dist/baseSpeed; // 近似
+      const px=player.x + (player.vx||0)*lead, py=player.y + (player.vy||0)*lead;
+      a = Math.atan2(py-t.y, px-t.x);
+    }
+    push(a);
+    if(!t.enemy && power.triple>0){ push(a+0.18); push(a-0.18); }
+    t.cd = t.enemy ? 36 : (power.rapid>0 ? 10 : 16);
   }
 
   function los(ax,ay,bx,by){
@@ -157,8 +172,8 @@ function startTank(){
     return true;
   }
 
-  // —— BFS：给定格坐标，返回“下一步格子”（非整条路径），失败返回 null ——
-  function bfs(fr,fk,tr,tk){
+  // —— BFS：返回整条路径（格子列表，包含起终点） ——
+  function bfsPath(fr,fk,tr,tk){
     const key=(r,k)=>r+','+k;
     const q=[[fr,fk]], prev=new Map(), seen=new Set([key(fr,fk)]);
     const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
@@ -173,23 +188,40 @@ function startTank(){
       }
     }
     const targetKey=key(tr,tk);
-    if(!prev.has(targetKey)) return null; // 不可达
-    // 回溯到起点邻居
-    let cur=[tr,tk], kk=targetKey;
-    while(prev.has(kk)){
-      const p=prev.get(kk);
-      if(p[0]===fr && p[1]===fk) return cur;
-      cur=p; kk=key(cur[0],cur[1]);
+    if(!prev.has(targetKey)) return null;
+    const path=[[tr,tk]];
+    let cur=[tr,tk];
+    while(!(cur[0]===fr && cur[1]===fk)){
+      cur = prev.get(key(cur[0],cur[1]));
+      if(!cur) return null;
+      path.push(cur);
     }
-    return null;
+    path.reverse();
+    // 平滑：去掉直线中间点
+    const smooth=[path[0]];
+    for(let i=1;i<path.length-1;i++){
+      const a=smooth[smooth.length-1], b=path[i], c=path[i+1];
+      const vab=[b[0]-a[0], b[1]-a[1]], vbc=[c[0]-b[0], c[1]-b[1]];
+      if(vab[0]===vbc[0] && vab[1]===vbc[1]) continue; // 直线
+      smooth.push(b);
+    }
+    smooth.push(path[path.length-1]);
+    return smooth;
   }
 
+  function planFor(e, now){
+    const [pr,pk]=w2c(player.x,player.y), [er,ek]=w2c(e.x,e.y);
+    const p=bfsPath(er,ek,pr,pk);
+    e.path=p; e.pi= (p && p.length>1)?1:0; e.lastPlan=now;
+  }
+
+  // 掉落道具
   function dropPower(x,y){
     const type = Math.random()<0.34?'shield':(Math.random()<0.5?'triple':'rapid');
     return {x,y,type,life:600};
   }
 
-  // 控制
+  // 控制（玩家）
   const keys={};
   const onKD=(e)=>{ keys[e.key]=true; if([' ','Spacebar','Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) e.preventDefault(); };
   const onKU=(e)=>{ keys[e.key]=false; };
@@ -202,25 +234,68 @@ function startTank(){
     if(win){ go('s2'); startRun(); } else { document.getElementById('r1').onclick=startTank; }
   }
 
-  function update(){
-    // 玩家
-    let dx=(keys['ArrowRight']||keys['d']?1:0)-(keys['ArrowLeft']||keys['a']?1:0);
-    let dy=(keys['ArrowDown']||keys['s']?1:0)-(keys['ArrowUp']||keys['w']?1:0);
-    if(dx||dy){ const len=Math.hypot(dx,dy)||1; move(player,dx/len,dy/len); player.dir=Math.atan2(dy,dx); }
+  let last=performance.now();
+  function update(now){
+    const dt=Math.min(50, now-last); last=now;
+    const dtS=dt/16.67; // 约每帧倍数
+
+    // 玩家移动：加速度与摩擦
+    let ax=0, ay=0;
+    if(keys['ArrowRight']||keys['d']) ax+=player.acc;
+    if(keys['ArrowLeft']||keys['a'])  ax-=player.acc;
+    if(keys['ArrowDown']||keys['s']) ay+=player.acc;
+    if(keys['ArrowUp']||keys['w'])   ay-=player.acc;
+    player.vx=(player.vx+ax*dtS); player.vy=(player.vy+ay*dtS);
+    const pv=Math.hypot(player.vx,player.vy); const pMax=player.maxSpeed;
+    if(pv>pMax){ player.vx=player.vx/pv*pMax; player.vy=player.vy/pv*pMax; }
+    player.vx*=0.90; player.vy*=0.90;
+    moveEntity(player);
+    if(ax||ay) faceTo(player, ax,ay);
     if(keys[' ']||keys['Spacebar']||keys['Space']) fire(player);
     if(player.cd>0) player.cd--; if(player.inv>0) player.inv--;
 
-    // 敌人 AI
+    // 敌人 AI：路径跟随 + 分离
     enemies.forEach(e=>{
-      const [pr,pk]=w2c(player.x,player.y), [er,ek]=w2c(e.x,e.y);
-      if(!e.path || e.stuck>15 || Math.random()<0.06){ const n=bfs(er,ek,pr,pk); e.path=n?[n[0],n[1]]:null; e.stuck=0; }
-      let mx=0,my=0;
-      if(e.path){ const t=c2w(e.path[0],e.path[1]); const vx=t.x-e.x,vy=t.y-e.y,len=Math.hypot(vx,vy)||1; mx=vx/len*e.speed*.95; my=vy/len*e.speed*.95; if(Math.hypot(vx,vy)<6) e.path=null; }
-      else { mx=(Math.random()-.5)*e.speed*1.2; my=(Math.random()-.5)*e.speed*1.2; }
-      const ox=e.x,oy=e.y; move(e,mx,my); if(Math.hypot(e.x-ox,e.y-oy)<.05) e.stuck++; else e.stuck=0;
-      e.dir=Math.atan2(player.y-e.y,player.x-e.x);
+      // 定时或必要时重新规划
+      const needPlan = !e.path || e.pi>=e.path.length || (now - e.lastPlan)>600 || e.stuck>20 || Math.random()<0.01;
+      if(needPlan){ planFor(e, now); e.stuck=0; }
+
+      // 期望速度：去往当前路点
+      let dvx=0,dvy=0;
+      if(e.path && e.pi<e.path.length){
+        const cell=e.path[e.pi]; const w=c2w(cell[0],cell[1]);
+        const vx=w.x - e.x, vy=w.y - e.y, dist=Math.hypot(vx,vy)||1;
+        if(dist<6){ e.pi++; } // 下一路点
+        dvx = vx/dist * e.maxSpeed - e.vx;
+        dvy = vy/dist * e.maxSpeed - e.vy;
+      }else{
+        // 没路径时小范围游走
+        const ang = (now*0.001 + Math.random()*0.5);
+        dvx = Math.cos(ang)*e.maxSpeed*0.4 - e.vx;
+        dvy = Math.sin(ang)*e.maxSpeed*0.4 - e.vy;
+      }
+
+      // 分离（避免贴脸重叠）
+      let sx=0, sy=0;
+      for(const o of enemies){
+        if(o===e) continue;
+        const dx=e.x-o.x, dy=e.y-o.y, d2=dx*dx+dy*dy;
+        if(d2<36*36 && d2>1){ const d=Math.sqrt(d2); sx += dx/d*(36-d)/36; sy += dy/d*(36-d)/36; }
+      }
+      dvx += sx*0.12; dvy += sy*0.12;
+
+      // 应用加速度、限速、摩擦
+      e.vx += dvx * e.acc * dtS; e.vy += dvy * e.acc * dtS;
+      const v=Math.hypot(e.vx,e.vy); if(v>e.maxSpeed){ e.vx=e.vx/v*e.maxSpeed; e.vy=e.vy/v*e.maxSpeed; }
+      e.vx*=0.92; e.vy*=0.92;
+      const ox=e.x, oy=e.y;
+      moveEntity(e);
+      if(Math.hypot(e.x-ox,e.y-oy)<0.05) e.stuck++; else e.stuck=0;
+
+      // 朝向与射击
+      faceTo(e, e.vx, e.vy);
       if(e.cd>0) e.cd--;
-      if(los(e.x,e.y,player.x,player.y) && Math.random()<0.15) fire(e);
+      if(los(e.x,e.y,player.x,player.y) && Math.random()<0.14) fire(e);
     });
 
     // 子弹
@@ -235,9 +310,9 @@ function startTank(){
     for(const b of bullets){
       if(b.life<=0) continue;
       if(!b.fromEnemy){
-        enemies.forEach(e=>{ if(e.hp>0 && Math.hypot(e.x-b.x,e.y-b.y)<13){ e.hp=0; b.life=0; } });
+        enemies.forEach(e=>{ if(e.hp>0 && Math.hypot(e.x-b.x,e.y-b.y)<Math.max(HW,HH)){ e.hp=0; b.life=0; } });
       }else{
-        if(Math.hypot(player.x-b.x,player.y-b.y)<13){
+        if(Math.hypot(player.x-b.x,player.y-b.y)<Math.max(HW,HH)){
           if(player.inv>0){ b.life=0; }
           else if(power.shield>0){ power.shield-=60; b.life=0; if(power.shield<=0) player.inv=40; }
           else{ b.life=0; player.hp--; player.inv=50; if(player.hp<=0){ over(false); return; } }
@@ -278,9 +353,8 @@ function startTank(){
   }
 
   document.getElementById('r1').onclick=()=>{ cancelAnimationFrame(tankAnim); startTank(); };
-  update();
+  tankAnim=requestAnimationFrame(update);
 }
-
 /* ====== 第二关：跑酷 ====== */
 let runAnim=0;
 function startRun(){
