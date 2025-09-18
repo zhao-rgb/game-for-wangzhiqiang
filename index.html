@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>王志强 · 兄弟地狱挑战（Bugfix Final）</title>
+<title>王志强 · 兄弟地狱挑战（Easy BulletHell）</title>
 <style>
   :root{--pink:#e91e63;--pink2:#ff80ab;--ok:#69f0ae;--bad:#ef5350;}
   html,body{height:100%}
@@ -69,7 +69,7 @@
     <div class="center" style="margin-top:8px"><button id="r4" class="btn hidden">重试本关</button></div>
   </section>
 
-  <!-- stage5 诡异解谜（原版占位，简单按钮通过） -->
+  <!-- stage5 诡异解谜（占位） -->
   <section id="s5" class="card hidden">
     <h2>第五关：诡异解谜</h2>
     <div style="opacity:.85">只要你够细心，这一关不难：找出<b>粉色</b>按钮并点击。</div>
@@ -101,20 +101,21 @@ const hud = document.getElementById('hud');
 function setDifficulty(lv){
   difficulty=lv;
   if(lv==='easy'){ cfg={
-    runTarget:500, runSpeed:3.0, jumpV:-9.5, gap:[160,210],
-    hellTime:10, hellSpeed:1.8, hellSpawn:28, hellLimit:150,
-    rrNeed:8, rrTimeout:1600,
-    moleTime:25, moleNeed:10, moleInterval:[600,900]
+    runTarget:450, runSpeed:3.0, jumpV:-9.6, gap:[170,230],
+    // BulletHell：更易 —— 时间更短，速度更慢，生成更少，弹量更低，玩家更快
+    hellTime:8, hellSpeed:1.35, hellSpawn:18, hellLimit:120, playerSpd:2.5, holeWidth:0.55,
+    rrNeed:7, rrTimeout:1700,
+    moleTime:24, moleNeed:9, moleInterval:[650,950]
   }; }
   else if(lv==='hard'){ cfg={
     runTarget:1100, runSpeed:3.6, jumpV:-8.6, gap:[110,160],
-    hellTime:14, hellSpeed:2.4, hellSpawn:34, hellLimit:180,
+    hellTime:14, hellSpeed:2.4, hellSpawn:34, hellLimit:180, playerSpd:2.2, holeWidth:0.25,
     rrNeed:12, rrTimeout:1200,
     moleTime:25, moleNeed:16, moleInterval:[420,700]
   }; }
   else { cfg={
     runTarget:800, runSpeed:3.2, jumpV:-9.0, gap:[140,190],
-    hellTime:12, hellSpeed:2.1, hellSpawn:30, hellLimit:165,
+    hellTime:11, hellSpeed:1.9, hellSpawn:26, hellLimit:155, playerSpd:2.3, holeWidth:0.35,
     rrNeed:10, rrTimeout:1400,
     moleTime:25, moleNeed:12, moleInterval:[520,820]
   }; }
@@ -129,9 +130,9 @@ document.getElementById('btnHard').onclick=()=>setDifficulty('hard');
 function go(n){
   for(let i=1;i<=7;i++) document.getElementById('s'+i).classList.toggle('hidden', i!==n);
 }
-function ok(){ console.log('ok'); }
-function ng(){ console.log('ng'); }
-function tip(t){ console.log(t); }
+function ok(){}
+function ng(){}
+function tip(t){}
 
 /* =============== 第一关 跑酷 =============== */
 let runAnim=0;
@@ -148,16 +149,13 @@ function startRun(){
 
   function step(){
     ctx.clearRect(0,0,c.width,c.height);
-    // ground
     ctx.fillStyle='#222'; ctx.fillRect(0,floor,c.width,2);
-    // move
     player.vy+=0.45; player.y+=player.vy;
     if(player.y>=floor-18){ player.y=floor-18; player.vy=0; player.on=true; }
     ctx.fillStyle='#ffd54f'; ctx.fillRect(player.x,player.y,player.w,player.h);
     obs.forEach(o=>o.x-=cfg.runSpeed);
     if(obs[0].x<-40){ obs.shift(); addObs(); }
     ctx.fillStyle='#ff80ab'; obs.forEach(o=>ctx.fillRect(o.x,o.y,o.w,o.h));
-    // collide
     for(const o of obs){
       if(player.x<o.x+o.w && player.x+player.w>o.x && player.y<o.y+o.h && player.y+player.h>o.y){
         cancelAnimationFrame(runAnim); document.getElementById('r1').onclick=startRun; return;
@@ -171,7 +169,7 @@ function startRun(){
 }
 document.getElementById('r1').onclick=startRun;
 
-/* =============== 第二关 弹幕（稳定版） =============== */
+/* =============== 第二关 弹幕（更易版稳定） =============== */
 let hellAnim=0;
 function startHell(){
   const c=document.getElementById('hell'), ctx=c.getContext('2d');
@@ -192,19 +190,26 @@ function startHell(){
   function spawnEdge(){
     if(bullets.length>=MAX) return;
     const side=Math.floor(Math.random()*4);
-    let x=0,y=0,vx=0,vy=0,sp=V*0.9;
-    if(side===0){x=0;y=Math.random()*c.height;vx=sp;vy=(Math.random()-.5)*sp*0.7;}
-    if(side===1){x=c.width;y=Math.random()*c.height;vx=-sp;vy=(Math.random()-.5)*sp*0.7;}
-    if(side===2){y=0;x=Math.random()*c.width;vy=sp;vx=(Math.random()-.5)*sp*0.7;}
-    if(side===3){y=c.height;x=Math.random()*c.width;vy=-sp;vx=(Math.random()-.5)*sp*0.7;}
+    let x=0,y=0,vx=0,vy=0,sp=V*0.85;               // 边缘弹更慢
+    if(side===0){x=0;y=Math.random()*c.height;vx=sp;vy=(Math.random()-.5)*sp*0.5;}
+    if(side===1){x=c.width;y=Math.random()*c.height;vx=-sp;vy=(Math.random()-.5)*sp*0.5;}
+    if(side===2){y=0;x=Math.random()*c.width;vy=sp;vx=(Math.random()-.5)*sp*0.5;}
+    if(side===3){y=c.height;x=Math.random()*c.width;vy=-sp;vx=(Math.random()-.5)*sp*0.5;}
     bullets.push({x,y,vx,vy});
   }
   function spawnRing(){
-    if(bullets.length>=MAX-12) return;
-    const cx=Math.random()*c.width, cy=Math.random()*c.height, hole=Math.random()*Math.PI*2;
-    const n=Math.max(8, Math.floor(cfg.hellSpawn/2));
-    for(let i=0;i<n;i++){ const ang=i*(Math.PI*2/n); if(Math.abs(ang-hole)<0.25) continue;
-      bullets.push({x:cx,y:cy,vx:Math.cos(ang)*V,vy:Math.sin(ang)*V}); }
+    if(bullets.length>=MAX-8) return;
+    const cx=Math.random()*c.width, cy=Math.random()*c.height, hole=cfg.holeWidth; // 更大的空缺角
+    const n=Math.max(6, Math.floor(cfg.hellSpawn/2)); // 总数更少
+    // 随机选择一个角度区间作为空缺
+    const offset=Math.random()*Math.PI*2;
+    for(let i=0;i<n;i++){
+      const ang=i*(Math.PI*2/n)+offset;
+      // 跳过一个更宽的空缺扇区
+      const norm=((ang-offset+Math.PI*2)%(Math.PI*2));
+      if(norm<hole || norm>(Math.PI*2-hole)) continue;
+      bullets.push({x:cx,y:cy,vx:Math.cos(ang)*V,vy:Math.sin(ang)*V});
+    }
   }
   function cleanup(){ cancelAnimationFrame(hellAnim); window.removeEventListener('keydown',onKD); window.removeEventListener('keyup',onKU); }
   function win(){ cleanup(); go(3); startRR(); }
@@ -213,11 +218,11 @@ function startHell(){
   function step(now){
     const dt=Math.min(50, now-last); last=now; leftMs-=dt;
     quota += spawnPerS*dt/1000;
-    while(quota>=1){ quota-=1; (Math.random()<0.55?spawnEdge:spawnRing)(); }
-    // move P
+    while(quota>=1){ quota-=1; (Math.random()<0.6?spawnEdge:spawnRing)(); }
+    // move P （简单档玩家移速略快）
     let dx=(keys['ArrowRight']||keys['d']?1:0)-(keys['ArrowLeft']||keys['a']?1:0);
     let dy=(keys['ArrowDown']||keys['s']?1:0)-(keys['ArrowUp']||keys['w']?1:0);
-    if(dx||dy){ const len=Math.hypot(dx,dy)||1; P.x+=dx/len*2.2; P.y+=dy/len*2.2; }
+    if(dx||dy){ const len=Math.hypot(dx,dy)||1; P.x+=dx/len*cfg.playerSpd; P.y+=dy/len*cfg.playerSpd; }
     P.x=Math.max(8,Math.min(c.width-8,P.x)); P.y=Math.max(8,Math.min(c.height-8,P.y));
     // bullets
     for(const b of bullets){ b.x+=b.vx; b.y+=b.vy; }
@@ -296,7 +301,7 @@ function startMole(){
     if(--time<0){ finish(); }
   }
   function finish(){ moleAlive=false; clearInterval(moleTimer); clearInterval(ti); if(score>=need){ go(5); startWeird(); } else { document.getElementById('r4').classList.remove('hidden'); } }
-  moleAlive=true; moleTimer=setInterval(spawn, 600); const ti=setInterval(tick,1000); tick();
+  moleAlive=true; moleTimer=setInterval(spawn, 650); const ti=setInterval(tick,1000); tick();
   document.getElementById('r4').onclick=()=>{ clearInterval(moleTimer); clearInterval(ti); startMole(); };
 }
 
@@ -342,17 +347,15 @@ function startTank(){
   function solid(x,y,w,h){ const pts=[[x,y],[x+w,y],[x,y+h],[x+w,y+h]]; for(const [px,py] of pts){ const [r,k]=w2c(px,py); const t=get(r,k); if(t===TW||t===TC) return true; } return false; }
   function move(t,dx,dy){ const sp=t.speed; let nx=t.x+dx*sp, ny=t.y; if(!solid(nx-12,ny-9,24,18)) t.x=nx; nx=t.x; ny=t.y+dy*sp; if(!solid(nx-12,ny-9,24,18)) t.y=ny; t.x=Math.max(12,Math.min(t.x,c.width-12)); t.y=Math.max(9,Math.min(t.y,c.height-9)); }
   function los(ax,ay,bx,by){ const steps=22; for(let i=1;i<=steps;i++){ const x=ax+(bx-ax)*i/steps,y=ay+(by-ay)*i/steps; const [r,k]=w2c(x,y), t=get(r,k); if(t===TW||t===TC) return false; } return true; }
-  function bfs(fr,fk,tr,tk){ const key=(r,k)=>r+','+k; const q=[[fr,fk]], prev=new Map(), seen=new Set([key(fr,fk)]); const dirs=[[1,0],[-1,0],[0,1],[0,-1]]; while(q.length){ const [r,k]=q.shift(); if(r===tr&&k===tk) break; for(const [dr,dk] of dirs){ const nr=r+dr,nk=k+dk,kk=key(nr,nk); if(nr<0||nk<0||nr>=ROWS||nk>=COLS) continue; if(get(nr,nk)!==T0) continue; if(!seen.has(kk)){ seen.add(kk); prev.set(kk,[r,k]); q.push([nr,nk]); } } } let cur=[tr,tk], kk=key(cur[0],cur[1]); if(!prev.has(kk)) return null; while(true){ const p=prev.get(kk); if(!p) return null; if(p[0]===fr&&p[1]===fk) return cur; kk=key(p[0],p[1]); cur=p; } }
+  function bfs(fr,fk,tr,tk){ const key=(r,k)=>r+','+k; const q=[[fr,fk]], prev=new Map(), seen=new Set([key(fr,fk)]); const dirs=[[1,0],[-1,0],[0,1],[0,-1]]; while(q.length){ const [r,k]=q.shift(); if(r===tr&&k===tk) break; for(const [dr,dk] of dirs){ const nr=r+dr,nk=k+dk,kk=key(nr,nk); if(nr<0||nk<0||nr>=ROWS||nk>=COLS) continue; if(get(nr,nk)!==T0) continue; if(!seen.has(kk)){ seen.add(kk); prev.set(kk,[r,k]); q.push([nr,nk]); } } } let cur=[tr,tk], kk=key(cur[0],cur[1]); if(!prev.has(kk)) return null; while(prev.get(kk) && prev.get(kk)[0]!==fr || prev.get(kk) && prev.get(kk)[1]!==fk){ cur=prev.get(kk); kk=key(cur[0],cur[1]); } return cur; }
 
   function update(){
-    // player
     let dx=(keys['ArrowRight']||keys['d']?1:0)-(keys['ArrowLeft']||keys['a']?1:0);
     let dy=(keys['ArrowDown']||keys['s']?1:0)-(keys['ArrowUp']||keys['w']?1:0);
     if(dx||dy){ const len=Math.hypot(dx,dy)||1; player.dir=Math.atan2(dy,dx); move(player,dx/len,dy/len); }
     if(keys[' ']||keys['Spacebar']||keys['Space']) fire(player,0.06);
     if(player.cd>0) player.cd--; if(grace>0) grace--;
 
-    // enemies
     enemies.forEach(e=>{
       const [pr,pk]=w2c(player.x,player.y), [er,ek]=w2c(e.x,e.y);
       if(!e.path || e.stuck>24){ const nx=bfs(er,ek,pr,pk); e.path=nx?[nx[0],nx[1]]:null; e.stuck=0; }
@@ -362,7 +365,6 @@ function startTank(){
       if(e.cd>0) e.cd--; if(los(e.x,e.y,player.x,player.y)&&Math.random()<0.12) fire(e,0.12); else if(Math.random()<0.025) fire(e,0.25);
     });
 
-    // bullets
     bullets.forEach(b=>{ b.x+=b.vx; b.y+=b.vy; b.life--; const [r,k]=w2c(b.x,b.y); const t=get(r,k); if(t===TW){ b.dead=true; } else if(t===TC){ b.dead=true; const id=r+','+k; crateHP[id]=(crateHP[id]||1)-1; if(crateHP[id]<=0) set(r,k,T0); } });
     for(const b of bullets){
       if(b.dead||b.life<=0) continue;
@@ -374,7 +376,6 @@ function startTank(){
     for(let i=0;i<bullets.length;i++) if(bullets[i].dead||bullets[i].life<=0) { bullets.splice(i,1); i--; }
     if(enemies.length===0) return over(true);
 
-    // draw
     ctx.clearRect(0,0,c.width,c.height);
     for(let r=0;r<ROWS;r++) for(let k=0;k<COLS;k++){ const t=map[r][k]; if(t===TW){ ctx.fillStyle='#1e1e1e'; ctx.fillRect(k*TS,r*TS,TS-1,TS-1); } if(t===TC){ ctx.fillStyle='#6d4c41'; ctx.fillRect(k*TS+2,r*TS+2,TS-4,TS-4); } }
     ctx.fillStyle='#fff'; ctx.fillText('生命:'+ '❤'.repeat(lives),8,16);
